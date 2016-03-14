@@ -9,6 +9,7 @@ import io.dropwizard.revolver.persistence.PersistenceProvider;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -23,6 +24,7 @@ import javax.ws.rs.core.Response;
 @Produces({MediaType.APPLICATION_JSON})
 @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MsgPackMediaType.APPLICATION_MSGPACK})
 @Slf4j
+@Singleton
 public class RevolverCallbackResource {
 
     public final PersistenceProvider persistenceProvider;

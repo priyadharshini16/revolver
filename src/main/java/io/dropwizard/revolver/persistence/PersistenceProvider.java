@@ -9,7 +9,7 @@ import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
  */
 public interface PersistenceProvider {
 
-    void saveRequest(final String requestId, RevolverCallbackRequest request) throws Exception;
+    void saveRequest(final String requestId, final String mailboxId, final RevolverCallbackRequest request) throws Exception;
 
     void setRequestState(final String requestId, RevolverRequestState state) throws Exception;
 
@@ -20,4 +20,5 @@ public interface PersistenceProvider {
     RevolverCallbackResponse response(final String requestId) throws Exception;
 
     RevolverCallbackRequest request(final String requestId) throws Exception;
+
 }

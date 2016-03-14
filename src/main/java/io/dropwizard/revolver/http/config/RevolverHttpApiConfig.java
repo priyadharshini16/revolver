@@ -2,37 +2,36 @@ package io.dropwizard.revolver.http.config;
 
 import io.dropwizard.revolver.core.config.CommandHandlerConfig;
 import io.dropwizard.revolver.core.config.HystrixCommandConfig;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.constraints.NotNull;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 /**
  * @author phaneesh
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder(builderMethodName = "configBuilder")
 public class RevolverHttpApiConfig extends CommandHandlerConfig {
 
     private String path;
 
     @NotNull
     @NotEmpty
-    private RequestMethod method;
+    private Set<RequestMethod> methods = Collections.singleton(RequestMethod.GET);
 
     private Set<Integer> acceptableResponseCodes = Collections.emptySet();
 
-    public RevolverHttpApiConfig(final String api, final HystrixCommandConfig runtime, final String path, final RequestMethod method, final Set<Integer> acceptableResponseCodes) {
+    @Builder(builderMethodName = "configBuilder")
+    public RevolverHttpApiConfig(final String api, final HystrixCommandConfig runtime, final String path, final Set<RequestMethod> methods, final Set<Integer> acceptableResponseCodes) {
         super(api, runtime);
         this.path = path;
-        this.method = method;
+        this.methods = methods;
         this.acceptableResponseCodes = acceptableResponseCodes;
     }
 

@@ -17,10 +17,12 @@ import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.*;
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.commons.lang3.text.StrSubstitutor;
 
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.*;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
@@ -28,7 +30,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +46,13 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
     public static final String PARENT_REQUEST_ID_HEADER = "X-Parent-Request-ID";
     public static final String TIMESTAMP_HEADER = "X-Request-Timestamp";
     public static final String CLIENT_HEADER = "X-Client-ID";
+    public static final String CALL_MODE_HEADER = "X-Call-Mode";
+
+    public static final String MAILBOX_ID_HEADER = "X-MailBox-Id";
+
+    public static final String CALL_MODE_POLLING = "POLLING";
+    public static final String CALL_MODE_CALLBACK = "CALLBACK";
+
     private final RevolverServiceResolver serviceResolver;
     private final OkHttpClient client;
 
@@ -60,30 +70,32 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
 
     @Override
     protected RevolverHttpResponse execute(RevolverHttpContext context, RevolverHttpRequest request) throws Exception {
-        switch (this.getApiConfigurations().get(request.getApi()).getMethod()) {
-            case GET: {
-                return doGet(request);
-            }
-            case POST: {
-                return doPost(request);
-            }
-            case PUT: {
-                return doPut(request);
-            }
-            case DELETE: {
-                return doDelete(request);
-            }
-            case HEAD: {
-                return doHead(request);
-            }
-            case OPTIONS: {
-                return doOptions(request);
-            }
-            case PATCH: {
-                return doPatch(request);
+        if(getApiConfigurations().get(request.getApi()).getMethods().contains(request.getMethod())) {
+            switch (request.getMethod()) {
+                case GET: {
+                    return doGet(request);
+                }
+                case POST: {
+                    return doPost(request);
+                }
+                case PUT: {
+                    return doPut(request);
+                }
+                case DELETE: {
+                    return doDelete(request);
+                }
+                case HEAD: {
+                    return doHead(request);
+                }
+                case OPTIONS: {
+                    return doOptions(request);
+                }
+                case PATCH: {
+                    return doPatch(request);
+                }
             }
         }
-        return null;
+        return RevolverHttpResponse.builder().statusCode(javax.ws.rs.core.Response.Status.BAD_REQUEST.getStatusCode()).build();
     }
 
     @Override
@@ -255,7 +267,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
             if (response.body() != null) {
                 log.error("Response: " + response.body().string());
             }
-            throw new Exception(String.format("HTTP %s %s failed with [%d - %s]", new Object[]{apiConfiguration.getMethod(), apiConfiguration.getApi(), response.code(), response.message()}));
+            throw new Exception(String.format("HTTP %s %s failed with [%d - %s]", new Object[]{apiConfiguration.getMethods(), apiConfiguration.getApi(), response.code(), response.message()}));
         }
         val headers = new MultivaluedHashMap<String, String>();
         response.headers().names().stream().forEach( h -> {

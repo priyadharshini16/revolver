@@ -3,10 +3,7 @@ package io.dropwizard.revolver.http.config;
 import io.dropwizard.revolver.core.config.RevolverServiceConfig;
 import io.dropwizard.revolver.discovery.EndpointSpec;
 import io.dropwizard.revolver.http.auth.AuthConfig;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -15,6 +12,7 @@ import java.util.Set;
 /**
  * @author phaneesh
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

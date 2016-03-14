@@ -32,8 +32,6 @@ import io.dropwizard.msgpack.MsgPackBundle;
 import io.dropwizard.revolver.core.RevolverExecutionException;
 import io.dropwizard.revolver.core.config.RevolverConfig;
 import io.dropwizard.revolver.core.config.RevolverServiceConfig;
-import io.dropwizard.revolver.core.tracing.Trace;
-import io.dropwizard.revolver.core.tracing.TraceCollector;
 import io.dropwizard.revolver.discovery.RevolverServiceResolver;
 import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
@@ -42,6 +40,7 @@ import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.auth.BasicAuthConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
+import io.dropwizard.revolver.http.model.ApiPathMap;
 import io.dropwizard.revolver.http.model.RevolverHttpRequest;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
 import io.dropwizard.revolver.resource.RevolverCallbackResource;
@@ -50,11 +49,12 @@ import io.dropwizard.revolver.resource.RevolverRequestStatusResource;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.xml.XmlBundle;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -72,6 +72,8 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     private static Map<String, RevolverHttpCommand> httpCommands = new HashMap<>();
 
+    private static MultivaluedMap<String, ApiPathMap> serviceToPathMap = new MultivaluedHashMap<>();
+
     private static final ObjectMapper msgPackObjectMapper = new ObjectMapper(new MessagePackFactory());
 
     public static final XmlMapper xmlObjectMapper = new XmlMapper();
@@ -80,12 +82,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     @Override
     public void initialize(Bootstrap<?> bootstrap) {
         registerTypes(bootstrap);
-        xmlObjectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        xmlObjectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        xmlObjectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        xmlObjectMapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, true);
-        xmlObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        xmlObjectMapper.configure(ToXmlGenerator.Feature.WRITE_XML_1_1, true);
+        configureXmlMapper();
         bootstrap.addBundle(new XmlBundle());
         bootstrap.addBundle(new MsgPackBundle());
         if(HystrixPlugins.getInstance().getMetricsPublisher() == null) {
@@ -98,8 +95,8 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     public void run(T configuration, Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
         initializeRevolver(configuration, environment);
         environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, getRevolverConfig(configuration).getHystrixStreamPath());
-        environment.jersey().register(new RevolverCallbackRequestFilter(getPersistenceProvider(), environment.getObjectMapper()));
-        environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper));
+        environment.jersey().register(new RevolverCallbackRequestFilter());
+        environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper, getPersistenceProvider()));
         environment.jersey().register(new RevolverCallbackResource(getPersistenceProvider()));
         environment.jersey().register(new RevolverRequestStatusResource(getPersistenceProvider()));
     }
@@ -113,13 +110,36 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RangerEndpointSpec.class, "ranger_sharded"));
     }
 
+    private void configureXmlMapper() {
+        xmlObjectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        xmlObjectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        xmlObjectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        xmlObjectMapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, true);
+        xmlObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        xmlObjectMapper.configure(ToXmlGenerator.Feature.WRITE_XML_1_1, true);
+    }
+
     private Map<String, RevolverHttpApiConfig> generateApiConfigMap(RevolverHttpServiceConfig serviceConfiguration) {
+        serviceConfiguration.getApis().forEach( apiConfig -> serviceToPathMap.add(serviceConfiguration.getService(),
+                ApiPathMap.builder()
+                        .api(apiConfig.getApi())
+                        .path(generatePathExpression(apiConfig.getPath())).build()));
         ImmutableMap.Builder<String, RevolverHttpApiConfig> configMapBuilder = ImmutableMap.builder();
-        serviceConfiguration.getApis().forEach(apiConfig -> {
-                    configMapBuilder.put(apiConfig.getApi(), apiConfig);
-                }
-        );
+        serviceConfiguration.getApis().forEach(apiConfig -> configMapBuilder.put(apiConfig.getApi(), apiConfig));
         return configMapBuilder.build();
+    }
+
+    private String generatePathExpression(final String path) {
+        return path.replaceAll("\\{(([^/])+\\})", "(([^/])+)");
+    }
+
+    public static ApiPathMap matchPath(final String service, final String path) {
+        if(serviceToPathMap.containsKey(service)) {
+           val apiMap = serviceToPathMap.get(service).stream().filter(api -> path.matches(api.getPath())).findFirst();
+           return apiMap.orElse(null);
+        } else {
+            return null;
+        }
     }
 
     public static RevolverHttpCommand getHttpCommand(String service) {
@@ -146,10 +166,10 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
                     httpCommands.put(config.getService(), RevolverHttpCommand.builder()
                             .clientConfiguration(revolverConfig.getClientConfig())
                             .runtimeConfig(revolverConfig.getGlobal())
-                            .serviceConfiguration(httpConfig).apiConfigurations(this.generateApiConfigMap(httpConfig))
+                            .serviceConfiguration(httpConfig).apiConfigurations(generateApiConfigMap(httpConfig))
                             .serviceResolver(serviceNameResolver)
                             .traceCollector(trace -> {
-
+                                //TODO: Put in a publisher if required
                             }).build());
                     break;
                 default:

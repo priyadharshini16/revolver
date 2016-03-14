@@ -3,6 +3,7 @@ package io.dropwizard.revolver.http.model;
 import io.dropwizard.revolver.core.model.RevolverResponse;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import javax.ws.rs.core.MultivaluedMap;
@@ -12,6 +13,7 @@ import java.util.Map;
 /**
  * @author phaneesh
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
 public class RevolverHttpResponse extends RevolverResponse {

@@ -53,15 +53,6 @@ import java.util.stream.Collectors;
 @Priority(Priorities.AUTHENTICATION)
 public class RevolverCallbackRequestFilter implements ContainerRequestFilter {
 
-    private PersistenceProvider persistenceProvider;
-
-    private ObjectMapper objectMapper;
-
-    public RevolverCallbackRequestFilter(final PersistenceProvider persistenceProvider, final ObjectMapper objectMapper) {
-        this.persistenceProvider = persistenceProvider;
-        this.objectMapper = objectMapper;
-    }
-
     @Override
     public void filter(ContainerRequestContext containerRequestContext) throws IOException {
         String requestId = containerRequestContext.getHeaderString(RevolverHttpCommand.REQUEST_ID_HEADER);
@@ -75,6 +66,7 @@ public class RevolverCallbackRequestFilter implements ContainerRequestFilter {
         if(StringUtils.isBlank(transactionId)) {
             containerRequestContext.getHeaders().putSingle(RevolverHttpCommand.TXN_ID_HEADER, requestId);
         }
+
     }
 
 

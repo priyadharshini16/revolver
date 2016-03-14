@@ -7,27 +7,35 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import io.dropwizard.jersey.PATCH;
 import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.RevolverBundle;
+import io.dropwizard.revolver.base.core.RevolverAckMessage;
+import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
+import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 import io.dropwizard.revolver.core.tracing.TraceInfo;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
+import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.model.RevolverHttpRequest;
 import io.dropwizard.revolver.http.model.RevolverHttpResponse;
+import io.dropwizard.revolver.persistence.PersistenceProvider;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
-import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author phaneesh
  */
-@Path("/")
+@Path("/apis")
 @Slf4j
 @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK})
 @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK})
+@Singleton
 public class RevolverRequestResource {
 
     private final ObjectMapper jsonObjectMapper;
@@ -36,83 +44,106 @@ public class RevolverRequestResource {
 
     private final XmlMapper xmlObjectMapper;
 
-    public RevolverRequestResource(final ObjectMapper jsonObjectMapper, final ObjectMapper msgPackObjectMapper, final XmlMapper xmlObjectMapper) {
+    private final PersistenceProvider persistenceProvider;
+
+    public RevolverRequestResource(final ObjectMapper jsonObjectMapper,
+                                   final ObjectMapper msgPackObjectMapper,
+                                   final XmlMapper xmlObjectMapper,
+                                   final PersistenceProvider persistenceProvider) {
         this.jsonObjectMapper = jsonObjectMapper;
         this.msgPackObjectMapper = msgPackObjectMapper;
         this.xmlObjectMapper = xmlObjectMapper;
+        this.persistenceProvider = persistenceProvider;
     }
 
     @GET
-    @Path(value="/{service}/{api}/{path: .*}")
+    @Path(value="/{service}/{path: .*}")
     @Metered
     public Response get(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo) throws IOException {
-        return processRequest(service, api, path, headers, uriInfo, null);
+                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo) throws Exception {
+        return processRequest(service, RevolverHttpApiConfig.RequestMethod.GET, path, headers, uriInfo, null);
     }
 
     @HEAD
-    @Path(value="/{service}/{api}/{path: .*}")
+    @Path(value="/{service}/{path: .*}")
     @Metered
     public Response head(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo) throws IOException {
-        return processRequest(service, api, path, headers, uriInfo, null);
+                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo) throws Exception {
+        return processRequest(service, RevolverHttpApiConfig.RequestMethod.HEAD, path, headers, uriInfo, null);
     }
 
     @POST
-    @Path(value="/{service}/{api}/{path: .*}")
+    @Path(value="/{service}/{path: .*}")
     @Metered
     public Response post(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo, byte[] body) throws IOException {
-        return processRequest(service, api, path, headers, uriInfo, body);
+                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo, byte[] body) throws Exception {
+        return processRequest(service, RevolverHttpApiConfig.RequestMethod.POST, path, headers, uriInfo, body);
     }
 
     @PUT
-    @Path(value="/{service}/{api}/{path: .*}")
+    @Path(value="/{service}/{path: .*}")
     @Metered
     public Response put(@PathParam("service") final String service, @PathParam("api") final String api,
-                         @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo, byte[] body) throws IOException {
-        return processRequest(service, api, path, headers, uriInfo, body);
+                         @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo, byte[] body) throws Exception {
+        return processRequest(service, RevolverHttpApiConfig.RequestMethod.PUT, path, headers, uriInfo, body);
     }
 
     @DELETE
-    @Path(value="/{service}/{api}/{path: .*}")
+    @Path(value="/{service}/{path: .*}")
     @Metered
     public Response delete(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo) throws IOException {
-        return processRequest(service, api, path, headers, uriInfo, null);
+                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo) throws Exception {
+        return processRequest(service, RevolverHttpApiConfig.RequestMethod.DELETE, path, headers, uriInfo, null);
     }
 
     @PATCH
-    @Path(value="/{service}/{api}/{path: .*}")
+    @Path(value="/{service}/{path: .*}")
     @Metered
     public Response patch(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo, byte[] body) throws IOException {
-        return processRequest(service, api, path, headers, uriInfo, body);
+                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo, byte[] body) throws Exception {
+        return processRequest(service, RevolverHttpApiConfig.RequestMethod.PATCH, path, headers, uriInfo, body);
     }
 
 
-    private Response processRequest(final String service,final String api, final String path, HttpHeaders headers,
-                                                UriInfo uriInfo, byte[] body) throws IOException {
+    private Response processRequest(final String service, final RevolverHttpApiConfig.RequestMethod method, final String path, HttpHeaders headers,
+                                    UriInfo uriInfo, byte[] body) throws Exception {
+        val apiMap = RevolverBundle.matchPath(service, path);
+        if(apiMap == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(Collections.singletonMap("message", "Bad Request")).build();
+        }
+        val callMode = headers.getRequestHeaders().getFirst(RevolverHttpCommand.CALL_MODE_HEADER);
+        if(StringUtils.isBlank(callMode)) {
+          return executeInline(service, apiMap.getApi(), method, path, headers, uriInfo, body);
+        }
+        switch (callMode.toUpperCase()) {
+            case RevolverHttpCommand.CALL_MODE_POLLING:
+            case RevolverHttpCommand.CALL_MODE_CALLBACK:
+                return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body);
+        }
+        return Response.status(Response.Status.BAD_REQUEST).build();
+    }
+
+    private Response executeInline(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method, final String path, HttpHeaders headers,
+                                   UriInfo uriInfo, byte[] body) throws IOException {
         cleanHeaders(headers.getRequestHeaders());
         RevolverHttpCommand httpCommand = RevolverBundle.getHttpCommand(service);
         RevolverHttpResponse response = httpCommand.execute(
                 RevolverHttpRequest.builder()
                         .traceInfo(
                                 TraceInfo.builder()
-                                        .requestId(UUID.randomUUID().toString())
-                                        .transactionId(UUID.randomUUID().toString())
+                                        .requestId(headers.getHeaderString(RevolverHttpCommand.REQUEST_ID_HEADER))
+                                        .transactionId(headers.getHeaderString(RevolverHttpCommand.TXN_ID_HEADER))
                                         .timestamp(System.currentTimeMillis())
                                         .build())
                         .api(api)
                         .service(service)
                         .path(path)
+                        .method(method)
                         .headers(headers.getRequestHeaders())
                         .queryParams(uriInfo.getQueryParameters())
                         .body(body)
                         .build()
         );
-
-
         val httpResponse = Response.status(response.getStatusCode());
         response.getHeaders().keySet().stream().filter( h -> !h.equalsIgnoreCase("Content-Type")).forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
 
@@ -163,36 +194,62 @@ public class RevolverRequestResource {
         headers.remove("HOST");
     }
 
-//    private void executeCommandAsync(final String requestId, final String transactionId, RevolverCallbackRequest callbackRequest) throws Exception {
-//        RevolverHttpCommand httpCommand = RevolverBundle.getHttpCommand(callbackRequest.getService());
-//        CompletableFuture<RevolverHttpResponse> response = httpCommand.executeAsync(
-//                RevolverHttpRequest.builder()
-//                        .traceInfo(
-//                                TraceInfo.builder()
-//                                        .requestId(requestId)
-//                                        .transactionId(transactionId)
-//                                        .timestamp(System.currentTimeMillis())
-//                                        .build())
-//                        .api(callbackRequest.getApi())
-//                        .service(callbackRequest.getService())
-//                        .path(callbackRequest.getPath())
-//                        .headers(callbackRequest.getHeaders())
-//                        .queryParams(callbackRequest.getQueryParams())
-//                        .build()
-//        );
-//        response.thenAccept( result -> {
-//            try {
-//                persistenceProvider.saveResponse(requestId, RevolverCallbackResponse.builder()
-//                        .body(result.getBody())
-//                        .headers(result.getHeaders())
-//                        .statusCode(result.getStatusCode())
-//                        .build());
-//                persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
-//            } catch (Exception e) {
-//                log.error("Error saving response:", e);
-//            }
-//        });
-//    }
+    private Response executeCommandAsync(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method, final String path, HttpHeaders headers,
+                                         UriInfo uriInfo, byte[] body) throws Exception {
+        RevolverHttpCommand httpCommand = RevolverBundle.getHttpCommand(service);
+        val requestId = headers.getHeaderString(RevolverHttpCommand.REQUEST_ID_HEADER);
+        val transactionId = headers.getHeaderString(RevolverHttpCommand.TXN_ID_HEADER);
+        val mailBoxId = headers.getHeaderString(RevolverHttpCommand.MAILBOX_ID_HEADER);
+        persistenceProvider.saveRequest(requestId, mailBoxId,
+                RevolverCallbackRequest.builder()
+                        .api(api)
+                        .service(service)
+                        .path(path)
+                        .headers(headers.getRequestHeaders())
+                        .queryParams(uriInfo.getQueryParameters())
+                        .body(body)
+                        .build()
+        );
+        CompletableFuture<RevolverHttpResponse> response = httpCommand.executeAsync(
+                RevolverHttpRequest.builder()
+                        .traceInfo(
+                                TraceInfo.builder()
+                                        .requestId(requestId)
+                                        .transactionId(transactionId)
+                                        .timestamp(System.currentTimeMillis())
+                                        .build())
+                        .api(api)
+                        .service(service)
+                        .path(path)
+                        .method(method)
+                        .headers(headers.getRequestHeaders())
+                        .queryParams(uriInfo.getQueryParameters())
+                        .body(body)
+                        .build()
+        );
+        persistenceProvider.saveRequest(requestId, mailBoxId,
+                RevolverCallbackRequest.builder()
+                        .api(api)
+                        .service(service)
+                        .path(path)
+                        .headers(headers.getRequestHeaders())
+                        .queryParams(uriInfo.getQueryParameters())
+                        .body(body)
+                        .build()
+        );
+        response.thenAcceptAsync( result -> {
+            try {
+                persistenceProvider.saveResponse(requestId, RevolverCallbackResponse.builder()
+                        .body(result.getBody())
+                        .headers(result.getHeaders())
+                        .statusCode(result.getStatusCode())
+                        .build());
+            } catch (Exception e) {
+                log.error("Error saving response:", e);
+            }
+        });
+        return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(System.currentTimeMillis()).build()).build();
+    }
 //
 //    private void sendError(ContainerRequestContext containerRequestContext, Response.Status status) throws IOException {
 //        containerRequestContext.abortWith(
