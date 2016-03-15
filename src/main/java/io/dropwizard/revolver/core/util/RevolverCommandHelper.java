@@ -1,16 +1,33 @@
+/*
+ * Copyright 2016 Phaneesh Nagaraja <phaneesh.n@gmail.com>.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
 package io.dropwizard.revolver.core.util;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.netflix.hystrix.*;
+import io.dropwizard.revolver.core.RevolverCommand;
+import io.dropwizard.revolver.core.RevolverExecutionException;
 import io.dropwizard.revolver.core.config.CommandHandlerConfig;
 import io.dropwizard.revolver.core.config.RevolverServiceConfig;
 import io.dropwizard.revolver.core.config.RuntimeConfig;
 import io.dropwizard.revolver.core.config.hystrix.CircuitBreakerConfig;
 import io.dropwizard.revolver.core.config.hystrix.MetricsConfig;
 import io.dropwizard.revolver.core.config.hystrix.ThreadPoolConfig;
-import io.dropwizard.revolver.core.RevolverCommand;
-import io.dropwizard.revolver.core.RevolverExecutionException;
 import io.dropwizard.revolver.core.model.RevolverRequest;
 import io.dropwizard.revolver.core.tracing.TraceInfo;
 
@@ -28,7 +45,7 @@ public class RevolverCommandHelper {
             throw new RevolverExecutionException(RevolverExecutionException.Type.BAD_REQUEST, "Request cannot be null");
         }
         TraceInfo traceInfo = request.getTrace();
-        if(traceInfo == null) {
+        if (traceInfo == null) {
             traceInfo = new TraceInfo();
             request.setTrace(traceInfo);
         }

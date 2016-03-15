@@ -1,3 +1,20 @@
+/*
+ * Copyright 2016 Phaneesh Nagaraja <phaneesh.n@gmail.com>.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
 package io.dropwizard.revolver.core;
 
 import com.google.common.base.Stopwatch;
@@ -27,11 +44,11 @@ import java.util.concurrent.TimeUnit;
 public abstract class RevolverCommand<RequestType extends RevolverRequest, ResponseType extends RevolverResponse, ContextType extends RevolverContext, ServiceConfigurationType extends RevolverServiceConfig, CommandHandlerConfigType extends CommandHandlerConfig> {
 
     private final ContextType context;
-    private ClientConfig clientConfiguration;
     private final RuntimeConfig runtimeConfig;
     private final ServiceConfigurationType serviceConfiguration;
     private final Map<String, CommandHandlerConfigType> apiConfigurations;
     private final TraceCollector traceCollector;
+    private ClientConfig clientConfiguration;
 
     public RevolverCommand(final ContextType context, final ClientConfig clientConfiguration,
                            final RuntimeConfig runtimeConfig, final ServiceConfigurationType serviceConfiguration,
@@ -70,7 +87,7 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
                     .service(this.serviceConfiguration.getService())
                     .api(apiConfiguration.getApi())
                     .duration(watch.stop()
-                    .elapsed(TimeUnit.MILLISECONDS))
+                            .elapsed(TimeUnit.MILLISECONDS))
                     .transactionId(traceInfo.getTransactionId())
                     .requestId(traceInfo.getRequestId())
                     .parentRequestId(traceInfo.getParentRequestId())
