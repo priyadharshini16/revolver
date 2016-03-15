@@ -4,17 +4,18 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flipkart.ranger.ServiceFinderBuilders;
-import com.flipkart.ranger.finder.ServiceFinder;
 import com.flipkart.ranger.finder.sharded.SimpleShardedServiceFinder;
 import com.flipkart.ranger.healthcheck.HealthcheckStatus;
-import com.flipkart.ranger.model.Deserializer;
 import com.flipkart.ranger.model.ServiceNode;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import io.dropwizard.revolver.discovery.model.Endpoint;
 import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -40,43 +41,49 @@ public class RevolverServiceResolver {
     public RevolverServiceResolver(final ServiceResolverConfig resolverConfig, final ObjectMapper objectMapper) {
         this.resolverConfig = resolverConfig;
         this.objectMapper = objectMapper;
-        if (!Strings.isNullOrEmpty(resolverConfig.getZkConnectionString())) {
-            this.curatorFramework = CuratorFrameworkFactory.builder().connectString(resolverConfig.getZkConnectionString())
-                    .namespace(resolverConfig.getNamespace()).retryPolicy(new RetryNTimes(1000, 500)).build();
-            this.curatorFramework.start();
-            this.discoverEnabled = true;
+        if(resolverConfig != null) {
+            if (!Strings.isNullOrEmpty(resolverConfig.getZkConnectionString())) {
+                this.curatorFramework = CuratorFrameworkFactory.builder().connectString(resolverConfig.getZkConnectionString())
+                        .namespace(resolverConfig.getNamespace()).retryPolicy(new RetryNTimes(1000, 500)).build();
+                this.curatorFramework.start();
+                this.discoverEnabled = true;
+            } else {
+                this.discoverEnabled = false;
+                this.curatorFramework = null;
+            }
         } else {
-            this.discoverEnabled = false;
-            this.curatorFramework = null;
+            discoverEnabled = false;
+            curatorFramework = null;
         }
     }
 
-    public Endpoint resolve(EndpointSpec endpointSpecification) {
+    public Endpoint resolve(final EndpointSpec endpointSpecification) {
         return new SpecResolver(this.discoverEnabled, this.serviceFinders).resolve(endpointSpecification);
     }
 
 
-    public void register(EndpointSpec endpointSpecification) {
+    public void register(final EndpointSpec endpointSpecification) {
         endpointSpecification.accept(new SpecVisitor(){
 
             @Override
-            public void visit(SimpleEndpointSpec simpleEndpointSpecification) {
+            public void visit(final SimpleEndpointSpec simpleEndpointSpecification) {
                 log.info("Initialized simple service: " + simpleEndpointSpecification.getHost());
             }
 
             @Override
-            public void visit(RangerEndpointSpec rangerEndpointSpecification) {
+            @SuppressWarnings("unchecked")
+            public void visit(final RangerEndpointSpec rangerEndpointSpecification) {
                 try {
-                    SimpleShardedServiceFinder serviceFinder = (SimpleShardedServiceFinder)ServiceFinderBuilders
+                    final SimpleShardedServiceFinder serviceFinder = (SimpleShardedServiceFinder)ServiceFinderBuilders
                             .shardedFinderBuilder().withCuratorFramework(curatorFramework)
                             .withNamespace(resolverConfig.getNamespace())
                             .withServiceName(rangerEndpointSpecification.getService()).withDeserializer(data -> {
                                 try {
-                                    JsonNode root2 = objectMapper.readTree(data);
-                                    if (root2.has("node_data")) {
-                                        ServiceNode serviceNode = new ServiceNode(root2.get("host").asText(), root2.get("port").asInt(), objectMapper.treeToValue(root2.get("node_data"), ShardInfo.class));
-                                        serviceNode.setHealthcheckStatus(HealthcheckStatus.valueOf(root2.get("healthcheck_status").asText()));
-                                        serviceNode.setLastUpdatedTimeStamp(root2.get("last_updated_time_stamp").asLong());
+                                    JsonNode nodeInfoRoot = objectMapper.readTree(data);
+                                    if (nodeInfoRoot.has("node_data")) {
+                                        ServiceNode serviceNode = new ServiceNode(nodeInfoRoot.get("host").asText(), nodeInfoRoot.get("port").asInt(), objectMapper.treeToValue(nodeInfoRoot.get("node_data"), ShardInfo.class));
+                                        serviceNode.setHealthcheckStatus(HealthcheckStatus.valueOf(nodeInfoRoot.get("healthcheck_status").asText()));
+                                        serviceNode.setLastUpdatedTimeStamp(nodeInfoRoot.get("last_updated_time_stamp").asLong());
                                         return serviceNode;
                                     }
                                     return objectMapper.readValue(data, new TypeReference<ServiceNode<ShardInfo>>(){});

@@ -7,8 +7,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import javax.ws.rs.core.MultivaluedMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author phaneesh

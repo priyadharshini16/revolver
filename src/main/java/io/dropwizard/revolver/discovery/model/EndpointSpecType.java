@@ -7,5 +7,5 @@ public enum EndpointSpecType {
 
     simple,
     ranger_simple,
-    ranger_sharded;
+    ranger_sharded
 }

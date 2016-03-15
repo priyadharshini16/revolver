@@ -3,16 +3,15 @@ package io.dropwizard.revolver.core.tracing;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author phaneesh
  */
 @Data
 @AllArgsConstructor
-@NoArgsConstructor
 @Builder
 public class TraceInfo {
 
@@ -25,4 +24,10 @@ public class TraceInfo {
     private long timestamp;
 
     private Map<String, String> attributes;
+
+    public TraceInfo() {
+        this.transactionId = UUID.randomUUID().toString();
+        this.requestId = this.transactionId;
+        this.timestamp = System.currentTimeMillis();
+    }
 }

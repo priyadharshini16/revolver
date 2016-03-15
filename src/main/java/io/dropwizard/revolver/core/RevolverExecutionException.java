@@ -6,21 +6,21 @@ package io.dropwizard.revolver.core;
 public class RevolverExecutionException extends RuntimeException {
     private final Type type;
 
-    public RevolverExecutionException(Type type) {
+    public RevolverExecutionException(final Type type) {
         this.type = type;
     }
 
-    public RevolverExecutionException(Type type, String message2) {
-        super(message2);
+    public RevolverExecutionException(final Type type, final String message) {
+        super(message);
         this.type = type;
     }
 
-    public RevolverExecutionException(Type type, String message2, Throwable cause) {
-        super(message2, cause);
+    public RevolverExecutionException(final Type type, final String message, final Throwable cause) {
+        super(message, cause);
         this.type = type;
     }
 
-    public RevolverExecutionException(Type type, Throwable cause) {
+    public RevolverExecutionException(final Type type, final Throwable cause) {
         super(cause);
         this.type = type;
     }
@@ -29,11 +29,11 @@ public class RevolverExecutionException extends RuntimeException {
         return this.type;
     }
 
-    public static enum Type {
+    public enum Type {
         SERVICE_ERROR,
         DOWNSTREAM_SERVICE_CALL_FAILURE,
         BAD_REQUEST;
-        private Type() {
+        Type() {
         }
     }
 }

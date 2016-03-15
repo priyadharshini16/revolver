@@ -9,16 +9,16 @@ import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
  */
 public interface PersistenceProvider {
 
-    void saveRequest(final String requestId, final String mailboxId, final RevolverCallbackRequest request) throws Exception;
+    void saveRequest(final String requestId, final String mailboxId, final RevolverCallbackRequest request);
 
-    void setRequestState(final String requestId, RevolverRequestState state) throws Exception;
+    void setRequestState(final String requestId, RevolverRequestState state);
 
-    void saveResponse(final String requestId, RevolverCallbackResponse response) throws Exception;
+    void saveResponse(final String requestId, RevolverCallbackResponse response);
 
-    RevolverRequestState requestState(final String requestId) throws Exception;
+    RevolverRequestState requestState(final String requestId);
 
-    RevolverCallbackResponse response(final String requestId) throws Exception;
+    RevolverCallbackResponse response(final String requestId);
 
-    RevolverCallbackRequest request(final String requestId) throws Exception;
+    RevolverCallbackRequest request(final String requestId);
 
 }

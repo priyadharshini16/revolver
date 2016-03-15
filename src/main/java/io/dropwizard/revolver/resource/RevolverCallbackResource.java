@@ -38,8 +38,8 @@ public class RevolverCallbackResource {
     @Metered
     public Response handleCallback(@PathParam("requestId") final String requestId,
                                    @HeaderParam("X-RESPONSE-CODE") final String responseCode,
-                                   @Context HttpHeaders headers,
-                                   @Context HttpServletRequest request) {
+                                   @Context final HttpHeaders headers,
+                                   @Context final HttpServletRequest request) {
         try {
             val response = RevolverCallbackResponse.builder()
                     .body(ByteStreams.toByteArray(request.getInputStream()))

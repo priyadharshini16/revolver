@@ -33,8 +33,8 @@ import java.util.concurrent.CompletableFuture;
  */
 @Path("/apis")
 @Slf4j
-@Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK})
-@Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK})
+@Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+@Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
 @Singleton
 public class RevolverRequestResource {
 
@@ -60,7 +60,7 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     public Response get(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo) throws Exception {
+                        @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.GET, path, headers, uriInfo, null);
     }
 
@@ -68,7 +68,7 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     public Response head(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo) throws Exception {
+                        @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.HEAD, path, headers, uriInfo, null);
     }
 
@@ -76,7 +76,7 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     public Response post(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo, byte[] body) throws Exception {
+                        @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.POST, path, headers, uriInfo, body);
     }
 
@@ -84,7 +84,7 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     public Response put(@PathParam("service") final String service, @PathParam("api") final String api,
-                         @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo, byte[] body) throws Exception {
+                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PUT, path, headers, uriInfo, body);
     }
 
@@ -92,7 +92,7 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     public Response delete(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo) throws Exception {
+                        @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.DELETE, path, headers, uriInfo, null);
     }
 
@@ -100,13 +100,13 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     public Response patch(@PathParam("service") final String service, @PathParam("api") final String api,
-                        @PathParam("path") final String path, @Context HttpHeaders headers, @Context UriInfo uriInfo, byte[] body) throws Exception {
+                        @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PATCH, path, headers, uriInfo, body);
     }
 
 
-    private Response processRequest(final String service, final RevolverHttpApiConfig.RequestMethod method, final String path, HttpHeaders headers,
-                                    UriInfo uriInfo, byte[] body) throws Exception {
+    private Response processRequest(final String service, final RevolverHttpApiConfig.RequestMethod method, final String path,
+                                    final HttpHeaders headers, final UriInfo uriInfo, final byte[] body) throws Exception {
         val apiMap = RevolverBundle.matchPath(service, path);
         if(apiMap == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity(Collections.singletonMap("message", "Bad Request")).build();
@@ -123,11 +123,12 @@ public class RevolverRequestResource {
         return Response.status(Response.Status.BAD_REQUEST).build();
     }
 
-    private Response executeInline(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method, final String path, HttpHeaders headers,
-                                   UriInfo uriInfo, byte[] body) throws IOException {
+    private Response executeInline(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method,
+                                   final String path, final HttpHeaders headers,
+                                   final UriInfo uriInfo, final byte[] body) throws IOException {
         cleanHeaders(headers.getRequestHeaders());
-        RevolverHttpCommand httpCommand = RevolverBundle.getHttpCommand(service);
-        RevolverHttpResponse response = httpCommand.execute(
+        val httpCommand = RevolverBundle.getHttpCommand(service);
+        val response = httpCommand.execute(
                 RevolverHttpRequest.builder()
                         .traceInfo(
                                 TraceInfo.builder()
@@ -188,15 +189,16 @@ public class RevolverRequestResource {
         return httpResponse.build();
     }
 
-    private void cleanHeaders(MultivaluedMap<String, String> headers) {
+    private void cleanHeaders(final MultivaluedMap<String, String> headers) {
         headers.remove("host");
         headers.remove("Host");
         headers.remove("HOST");
     }
 
-    private Response executeCommandAsync(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method, final String path, HttpHeaders headers,
-                                         UriInfo uriInfo, byte[] body) throws Exception {
-        RevolverHttpCommand httpCommand = RevolverBundle.getHttpCommand(service);
+    private Response executeCommandAsync(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method,
+                                         final String path, final HttpHeaders headers,
+                                         final UriInfo uriInfo, final byte[] body) throws Exception {
+        val httpCommand = RevolverBundle.getHttpCommand(service);
         val requestId = headers.getHeaderString(RevolverHttpCommand.REQUEST_ID_HEADER);
         val transactionId = headers.getHeaderString(RevolverHttpCommand.TXN_ID_HEADER);
         val mailBoxId = headers.getHeaderString(RevolverHttpCommand.MAILBOX_ID_HEADER);

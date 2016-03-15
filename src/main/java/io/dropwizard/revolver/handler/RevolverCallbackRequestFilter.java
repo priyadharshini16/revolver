@@ -15,19 +15,7 @@
  */
 package io.dropwizard.revolver.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Joiner;
-import com.google.common.io.ByteStreams;
-import io.dropwizard.revolver.RevolverBundle;
-import io.dropwizard.revolver.base.core.RevolverAckMessage;
-import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
-import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
-import io.dropwizard.revolver.base.core.RevolverRequestState;
-import io.dropwizard.revolver.core.tracing.TraceInfo;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
-import io.dropwizard.revolver.http.model.RevolverHttpRequest;
-import io.dropwizard.revolver.http.model.RevolverHttpResponse;
-import io.dropwizard.revolver.persistence.PersistenceProvider;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
@@ -36,14 +24,9 @@ import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.core.PathSegment;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * @author phaneesh
@@ -54,10 +37,10 @@ import java.util.stream.Collectors;
 public class RevolverCallbackRequestFilter implements ContainerRequestFilter {
 
     @Override
-    public void filter(ContainerRequestContext containerRequestContext) throws IOException {
+    public void filter(final ContainerRequestContext containerRequestContext) throws IOException {
         String requestId = containerRequestContext.getHeaderString(RevolverHttpCommand.REQUEST_ID_HEADER);
-        String transactionId = containerRequestContext.getHeaderString(RevolverHttpCommand.TXN_ID_HEADER);
-        String host = containerRequestContext.getHeaderString("host");
+        val transactionId = containerRequestContext.getHeaderString(RevolverHttpCommand.TXN_ID_HEADER);
+        val host = containerRequestContext.getHeaderString("host");
         containerRequestContext.getHeaders().putSingle("X-FORWARDED-FOR", host);
         if(StringUtils.isBlank(requestId)) {
             requestId = UUID.randomUUID().toString();

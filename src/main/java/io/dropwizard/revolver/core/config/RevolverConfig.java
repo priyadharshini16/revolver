@@ -2,9 +2,8 @@ package io.dropwizard.revolver.core.config;
 
 import com.google.common.collect.Lists;
 import io.dropwizard.revolver.discovery.ServiceResolverConfig;
-import io.dropwizard.revolver.discovery.config.ServiceDiscoveryConfig;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.validator.constraints.NotBlank;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
@@ -14,6 +13,8 @@ import java.util.List;
 /**
  * @author phaneesh
  */
+@Builder
+@AllArgsConstructor
 public class RevolverConfig {
 
     @NotNull
@@ -35,7 +36,7 @@ public class RevolverConfig {
     private ServiceResolverConfig serviceResolverConfig;
 
     @NotNull
-    @NotEmpty
+    @NotBlank
     @Getter
     @Setter
     private String hystrixStreamPath;
@@ -45,6 +46,7 @@ public class RevolverConfig {
     @Valid
     @Getter
     @Setter
+    @Singular
     private List<RevolverServiceConfig> services;
 
     public RevolverConfig() {

@@ -5,6 +5,7 @@ import com.google.common.base.Strings;
 import io.dropwizard.revolver.http.auth.BasicAuthConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
 
@@ -13,7 +14,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
@@ -29,9 +29,9 @@ public class RevolverHttpClientFactory {
         if(serviceConfiguration.isAuthEnabled()) {
             switch(serviceConfiguration.getAuth().getType().toLowerCase()) {
                 case "basic":
-                    BasicAuthConfig basicAuthConfig = (BasicAuthConfig) serviceConfiguration.getAuth();
+                    val basicAuthConfig = (BasicAuthConfig) serviceConfiguration.getAuth();
                     if (!Strings.isNullOrEmpty(basicAuthConfig.getUsername())) {
-
+                        throw new RuntimeException(String.format("No valid authentication data for service %s", serviceConfiguration.getAuth().getType()));
                     }
                     builder.authenticator((route, response) -> {
                         String credentials = Credentials.basic(basicAuthConfig.getUsername(), basicAuthConfig.getPassword());
@@ -60,21 +60,21 @@ public class RevolverHttpClientFactory {
                 builder.socketFactory(getSSLContext().getSocketFactory());
             }
         }
-        builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), serviceConfiguration.getConnectionKeepAliveInMillis(), TimeUnit.MILLISECONDS));
+        if(serviceConfiguration.getConnectionKeepAliveInMillis() <= 0 ) {
+            builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), 5, TimeUnit.MINUTES));
+        } else {
+            builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), serviceConfiguration.getConnectionKeepAliveInMillis(), TimeUnit.MILLISECONDS));
+        }
         builder.connectTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
         return builder.build();
     }
 
     private static SSLContext getSSLContext(final String keyStorePath, final String keyStorePassword) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, KeyManagementException, UnrecoverableKeyException {
         final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        final InputStream instream = RevolverHttpClientFactory.class.getClassLoader().getResourceAsStream(keyStorePath);
-        try {
+        try (InputStream instream = RevolverHttpClientFactory.class.getClassLoader().getResourceAsStream(keyStorePath)) {
             keyStore.load(instream, keyStorePassword.toCharArray());
         }
-        finally {
-            instream.close();
-        }
-        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         trustManagerFactory.init(keyStore);
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         keyManagerFactory.init(keyStore, keyStorePassword.toCharArray());
@@ -84,18 +84,18 @@ public class RevolverHttpClientFactory {
     }
 
     private static SSLContext getSSLContext() throws NoSuchAlgorithmException, KeyManagementException {
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        TrustManager[] trustManagers = new TrustManager[]{new TrustEveryoneManager()};
+        final SSLContext sslContext = SSLContext.getInstance("TLS");
+        final TrustManager[] trustManagers = new TrustManager[]{new TrustEveryoneManager()};
         sslContext.init(null, trustManagers, null);
         return sslContext;
     }
 
     static class TrustEveryoneManager implements X509TrustManager {
         @Override
-        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException { }
+        public void checkClientTrusted(final java.security.cert.X509Certificate[] chain, final String authType) throws CertificateException { }
 
         @Override
-        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException { }
+        public void checkServerTrusted(final java.security.cert.X509Certificate[] chain, final String authType) throws CertificateException { }
 
         @Override
         public java.security.cert.X509Certificate[] getAcceptedIssuers() {

@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ThreadPoolConfig {
 
-    private boolean semaphoreIsolated = false;
+    private boolean semaphoreIsolated;
 
     private int concurrency = 10;
 

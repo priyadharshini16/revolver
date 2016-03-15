@@ -7,7 +7,6 @@ import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.constraints.NotNull;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -23,12 +22,13 @@ public class RevolverHttpApiConfig extends CommandHandlerConfig {
 
     @NotNull
     @NotEmpty
+    @Singular
     private Set<RequestMethod> methods = Collections.singleton(RequestMethod.GET);
 
     private Set<Integer> acceptableResponseCodes = Collections.emptySet();
 
     @Builder(builderMethodName = "configBuilder")
-    public RevolverHttpApiConfig(final String api, final HystrixCommandConfig runtime, final String path, final Set<RequestMethod> methods, final Set<Integer> acceptableResponseCodes) {
+    public RevolverHttpApiConfig(final String api, final HystrixCommandConfig runtime, final String path, @Singular final Set<RequestMethod> methods, final Set<Integer> acceptableResponseCodes) {
         super(api, runtime);
         this.path = path;
         this.methods = methods;
@@ -42,6 +42,6 @@ public class RevolverHttpApiConfig extends CommandHandlerConfig {
         DELETE,
         HEAD,
         PATCH,
-        OPTIONS;
+        OPTIONS
     }
 }

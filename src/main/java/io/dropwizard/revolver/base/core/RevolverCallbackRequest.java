@@ -21,7 +21,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.ws.rs.core.MultivaluedMap;
-import java.util.Map;
 
 /**
  * @author phaneesh

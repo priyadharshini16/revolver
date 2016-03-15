@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.validator.constraints.NotEmpty;
+import org.hibernate.validator.constraints.NotBlank;
 
 import javax.validation.constraints.NotNull;
 
@@ -18,12 +18,17 @@ import javax.validation.constraints.NotNull;
 public class RevolverServiceConfig {
 
     @NotNull
-    @NotEmpty
+    @NotBlank
     private String type;
 
     @NotNull
-    @NotEmpty
+    @NotBlank
     private String service;
 
     private HystrixCommandConfig runtime = new HystrixCommandConfig();
+
+    public RevolverServiceConfig(final String type, final String service) {
+        this.type = type;
+        this.service = service;
+    }
 }

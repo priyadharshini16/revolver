@@ -1,14 +1,3 @@
 /.idea/
 target/
-dist/
-.idea
-.idea_modules
-atlassian-ide-plugin.xml
-.DS_Store
-log
-logs
-*.log
 *.iml
-*.ipr
-*.iws
-

@@ -76,23 +76,23 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     private static final ObjectMapper msgPackObjectMapper = new ObjectMapper(new MessagePackFactory());
 
-    public static final XmlMapper xmlObjectMapper = new XmlMapper();
+    private static final XmlMapper xmlObjectMapper = new XmlMapper();
 
 
     @Override
-    public void initialize(Bootstrap<?> bootstrap) {
+    public void initialize(final Bootstrap<?> bootstrap) {
         registerTypes(bootstrap);
         configureXmlMapper();
         bootstrap.addBundle(new XmlBundle());
         bootstrap.addBundle(new MsgPackBundle());
         if(HystrixPlugins.getInstance().getMetricsPublisher() == null) {
-            HystrixCodaHaleMetricsPublisher publisher = new HystrixCodaHaleMetricsPublisher(bootstrap.getMetricRegistry());
+            val publisher = new HystrixCodaHaleMetricsPublisher(bootstrap.getMetricRegistry());
             HystrixPlugins.getInstance().registerMetricsPublisher(publisher);
         }
     }
 
     @Override
-    public void run(T configuration, Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
+    public void run(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
         initializeRevolver(configuration, environment);
         environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, getRevolverConfig(configuration).getHystrixStreamPath());
         environment.jersey().register(new RevolverCallbackRequestFilter());
@@ -102,7 +102,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     }
 
 
-    private void registerTypes(Bootstrap<?> bootstrap) {
+    private void registerTypes(final Bootstrap<?> bootstrap) {
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RevolverHttpServiceConfig.class, "http"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RevolverHttpRequest.class, "http"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(BasicAuthConfig.class, "basic"));
@@ -119,12 +119,12 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         xmlObjectMapper.configure(ToXmlGenerator.Feature.WRITE_XML_1_1, true);
     }
 
-    private Map<String, RevolverHttpApiConfig> generateApiConfigMap(RevolverHttpServiceConfig serviceConfiguration) {
+    private Map<String, RevolverHttpApiConfig> generateApiConfigMap(final RevolverHttpServiceConfig serviceConfiguration) {
         serviceConfiguration.getApis().forEach( apiConfig -> serviceToPathMap.add(serviceConfiguration.getService(),
                 ApiPathMap.builder()
                         .api(apiConfig.getApi())
                         .path(generatePathExpression(apiConfig.getPath())).build()));
-        ImmutableMap.Builder<String, RevolverHttpApiConfig> configMapBuilder = ImmutableMap.builder();
+        final ImmutableMap.Builder<String, RevolverHttpApiConfig> configMapBuilder = ImmutableMap.builder();
         serviceConfiguration.getApis().forEach(apiConfig -> configMapBuilder.put(apiConfig.getApi(), apiConfig));
         return configMapBuilder.build();
     }
@@ -135,27 +135,27 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     public static ApiPathMap matchPath(final String service, final String path) {
         if(serviceToPathMap.containsKey(service)) {
-           val apiMap = serviceToPathMap.get(service).stream().filter(api -> path.matches(api.getPath())).findFirst();
+           final val apiMap = serviceToPathMap.get(service).stream().filter(api -> path.matches(api.getPath())).findFirst();
            return apiMap.orElse(null);
         } else {
             return null;
         }
     }
 
-    public static RevolverHttpCommand getHttpCommand(String service) {
-        RevolverHttpCommand command = httpCommands.get(service);
+    public static RevolverHttpCommand getHttpCommand(final String service) {
+        val command = httpCommands.get(service);
         if (null == command) {
             throw new RevolverExecutionException(RevolverExecutionException.Type.BAD_REQUEST, "No service spec defined for service: " + service);
         }
         return command;
     }
 
-    public abstract RevolverConfig getRevolverConfig(T configuration);
+    public abstract RevolverConfig getRevolverConfig(final T configuration);
 
     public abstract PersistenceProvider getPersistenceProvider();
 
-    private void initializeRevolver(T configuration, Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
-        RevolverConfig revolverConfig = getRevolverConfig(configuration);
+    private void initializeRevolver(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
+        val revolverConfig = getRevolverConfig(configuration);
         final RevolverServiceResolver serviceNameResolver = new RevolverServiceResolver(revolverConfig.getServiceResolverConfig(), environment.getObjectMapper());
         for (final RevolverServiceConfig config : revolverConfig.getServices()) {
             final String type = config.getType();
@@ -178,4 +178,5 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
             }
         }
     }
+
 }

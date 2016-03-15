@@ -19,15 +19,19 @@ import io.dropwizard.revolver.core.tracing.TraceInfo;
  */
 public class RevolverCommandHelper {
 
-    public static String getName(RevolverRequest request) {
+    public static String getName(final RevolverRequest request) {
         return Joiner.on(".").join(request.getService(), request.getApi());
     }
 
-    public static <T extends RevolverRequest> T normalize(T request) {
+    public static <T extends RevolverRequest> T normalize(final T request) {
         if (null == request) {
             throw new RevolverExecutionException(RevolverExecutionException.Type.BAD_REQUEST, "Request cannot be null");
         }
-        final TraceInfo traceInfo = request.getTrace();
+        TraceInfo traceInfo = request.getTrace();
+        if(traceInfo == null) {
+            traceInfo = new TraceInfo();
+            request.setTrace(traceInfo);
+        }
         if (Strings.isNullOrEmpty(traceInfo.getRequestId())) {
             throw new RevolverExecutionException(RevolverExecutionException.Type.BAD_REQUEST, "Request ID must be passed in span");
         }
@@ -57,7 +61,7 @@ public class RevolverCommandHelper {
             threadPoolConfig = serviceConfiguration.getRuntime().getThreadPool();
         }
         final MetricsConfig metricsConfig = runtimeConfig.getMetrics();
-        final String keyName = Joiner.on(".").join(commandHandler.getServiceConfiguration().getService(), api, new Object[0]);
+        final String keyName = Joiner.on(".").join(commandHandler.getServiceConfiguration().getService(), api);
         return HystrixCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(serviceConfiguration.getService())).andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationStrategy(threadPoolConfig.isSemaphoreIsolated() ? HystrixCommandProperties.ExecutionIsolationStrategy.SEMAPHORE : HystrixCommandProperties.ExecutionIsolationStrategy.THREAD).withExecutionIsolationSemaphoreMaxConcurrentRequests(threadPoolConfig.getConcurrency()).withFallbackIsolationSemaphoreMaxConcurrentRequests(threadPoolConfig.getConcurrency()).withFallbackEnabled(commandHandler.isFallbackEnabled()).withCircuitBreakerErrorThresholdPercentage(circuitBreakerConfig.getErrorThresholdPercentage()).withCircuitBreakerRequestVolumeThreshold(circuitBreakerConfig.getNumAcceptableFailuresInTimeWindow()).withCircuitBreakerSleepWindowInMilliseconds(circuitBreakerConfig.getWaitTimeBeforeRetry()).withExecutionTimeoutInMilliseconds(threadPoolConfig.getTimeout()).withMetricsHealthSnapshotIntervalInMilliseconds(metricsConfig.getHealthCheckInterval()).withMetricsRollingPercentileBucketSize(metricsConfig.getPercentileBucketSize()).withMetricsRollingPercentileWindowInMilliseconds(metricsConfig.getPercentileTimeInMillis())).andCommandKey(HystrixCommandKey.Factory.asKey(keyName)).andThreadPoolKey(HystrixThreadPoolKey.Factory.asKey(keyName)).andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter().withCoreSize(threadPoolConfig.getConcurrency()).withMaxQueueSize(threadPoolConfig.getMaxRequestQueueSize()).withQueueSizeRejectionThreshold(threadPoolConfig.getDynamicRequestQueueSize()).withMetricsRollingStatisticalWindowBuckets(metricsConfig.getStatsBucketSize()).withMetricsRollingStatisticalWindowInMilliseconds(metricsConfig.getStatsTimeInMillis()));
     }
 }

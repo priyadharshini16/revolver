@@ -22,7 +22,7 @@ public class InMemoryPersistenceProvider implements PersistenceProvider {
     private final MultivaluedMap<String, String> mailbox = new MultivaluedHashMap<>();
 
     @Override
-    public void saveRequest(String requestId, String mailBoxId, RevolverCallbackRequest request) throws Exception {
+    public void saveRequest(final String requestId, final String mailBoxId, final RevolverCallbackRequest request) {
         callbackRequests.put(requestId, request);
         if(!StringUtils.isBlank(mailBoxId))
             mailbox.add(mailBoxId, requestId);
@@ -30,28 +30,28 @@ public class InMemoryPersistenceProvider implements PersistenceProvider {
     }
 
     @Override
-    public void setRequestState(String requestId, RevolverRequestState state) throws Exception {
+    public void setRequestState(final String requestId, final RevolverRequestState state) {
         callbackStates.put(requestId, state);
     }
 
     @Override
-    public void saveResponse(String requestId, RevolverCallbackResponse response) throws Exception {
+    public void saveResponse(final String requestId, final RevolverCallbackResponse response) {
         callbackResponse.put(requestId, response);
         callbackStates.put(requestId, RevolverRequestState.RESPONDED);
     }
 
     @Override
-    public RevolverRequestState requestState(String requestId) throws Exception {
+    public RevolverRequestState requestState(final String requestId) {
         return callbackStates.get(requestId);
     }
 
     @Override
-    public RevolverCallbackRequest request(String requestId) throws Exception {
+    public RevolverCallbackRequest request(final String requestId) {
         return callbackRequests.get(requestId);
     }
 
     @Override
-    public RevolverCallbackResponse response(String requestId) throws Exception {
+    public RevolverCallbackResponse response(final String requestId) {
         return callbackResponse.get(requestId);
     }
 

@@ -27,8 +27,8 @@ public class RevolverHttpRequest extends RevolverRequest
     private byte[] body;
 
     public RevolverHttpRequest() {
-        this.headers = new MultivaluedHashMap<String, String>();
-        this.queryParams = new MultivaluedHashMap<String, String>();
+        this.headers = new MultivaluedHashMap<>();
+        this.queryParams = new MultivaluedHashMap<>();
         this.pathParams = Maps.newHashMap();
         this.method = RevolverHttpApiConfig.RequestMethod.GET;
         this.setType("http");
@@ -37,8 +37,8 @@ public class RevolverHttpRequest extends RevolverRequest
     @Builder
     public RevolverHttpRequest(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method, final TraceInfo traceInfo, final MultivaluedMap<String, String> headers, final MultivaluedMap<String, String> queryParams, final Map<String, String> pathParams, final String path, final byte[] body) {
         super("http", service, api, traceInfo);
-        this.headers = new MultivaluedHashMap<String, String>();
-        this.queryParams = new MultivaluedHashMap<String, String>();
+        this.headers = new MultivaluedHashMap<>();
+        this.queryParams = new MultivaluedHashMap<>();
         this.pathParams = Maps.newHashMap();
         this.headers = headers;
         this.queryParams = queryParams;

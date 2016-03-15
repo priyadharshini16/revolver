@@ -35,5 +35,5 @@ public class RevolverRequest {
 
     @NotNull
     @Valid
-    private TraceInfo trace;
+    private TraceInfo trace = new TraceInfo();
 }

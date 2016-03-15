@@ -5,7 +5,7 @@ package io.dropwizard.revolver.core.util;
  */
 public class RevolverExceptionHelper {
 
-    public static Throwable getLeafThrowable(Throwable t) {
+    public static Throwable getLeafThrowable(final Throwable t) {
         Throwable tmp = t;
         for (Throwable current = t; current != null; current = current.getCause()) {
             tmp = current;
@@ -13,7 +13,7 @@ public class RevolverExceptionHelper {
         return tmp;
     }
 
-    public static String getLeafErrorMessage(Throwable t) {
+    public static String getLeafErrorMessage(final Throwable t) {
         return RevolverExceptionHelper.getLeafThrowable(t).getMessage();
     }
 }

@@ -1,7 +1,6 @@
 package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
-import com.google.common.collect.Maps;
 import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.base.core.RevolverRequestStateResponse;
