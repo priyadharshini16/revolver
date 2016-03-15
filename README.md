@@ -39,7 +39,7 @@ Use the following maven dependency:
 <dependency>
     <groupId>io.dropwizard.xml</groupId>
     <artifactId>revolver</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.4</version>
 </dependency>
 ```
 
@@ -81,8 +81,9 @@ revolver:
         port: 80
       apis:
         - api: ping
-          path: /v2/56da42e80f0000ac31a427ce
-          method: GET
+          path: "{version}/56da42e80f0000ac31a427ce"
+          methods:
+            - GET
           runtime:
             threadPool:
               concurrency: 5
