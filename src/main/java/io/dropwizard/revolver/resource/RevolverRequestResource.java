@@ -16,6 +16,8 @@ import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.model.RevolverHttpRequest;
 import io.dropwizard.revolver.http.model.RevolverHttpResponse;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
@@ -36,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
 @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
 @Singleton
+@Api(value = "RevolverGateway", description = "Revolver gateway api endpoints")
 public class RevolverRequestResource {
 
     private final ObjectMapper jsonObjectMapper;
@@ -59,6 +62,7 @@ public class RevolverRequestResource {
     @GET
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @ApiOperation(value = "Revolver GET api endpoint")
     public Response get(@PathParam("service") final String service, @PathParam("api") final String api,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.GET, path, headers, uriInfo, null);
@@ -67,6 +71,7 @@ public class RevolverRequestResource {
     @HEAD
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @ApiOperation(value = "Revolver HEAD api endpoint")
     public Response head(@PathParam("service") final String service, @PathParam("api") final String api,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.HEAD, path, headers, uriInfo, null);
@@ -75,6 +80,7 @@ public class RevolverRequestResource {
     @POST
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @ApiOperation(value = "Revolver POST api endpoint")
     public Response post(@PathParam("service") final String service, @PathParam("api") final String api,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.POST, path, headers, uriInfo, body);
@@ -83,6 +89,7 @@ public class RevolverRequestResource {
     @PUT
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @ApiOperation(value = "Revolver PUT api endpoint")
     public Response put(@PathParam("service") final String service, @PathParam("api") final String api,
                          @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PUT, path, headers, uriInfo, body);
@@ -91,6 +98,7 @@ public class RevolverRequestResource {
     @DELETE
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @ApiOperation(value = "Revolver DELETE api endpoint")
     public Response delete(@PathParam("service") final String service, @PathParam("api") final String api,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.DELETE, path, headers, uriInfo, null);
@@ -99,9 +107,19 @@ public class RevolverRequestResource {
     @PATCH
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @ApiOperation(value = "Revolver PATCH api endpoint")
     public Response patch(@PathParam("service") final String service, @PathParam("api") final String api,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PATCH, path, headers, uriInfo, body);
+    }
+
+    @OPTIONS
+    @Path(value="/{service}/{path: .*}")
+    @Metered
+    @ApiOperation(value = "Revolver OPTIONS api endpoint")
+    public Response options(@PathParam("service") final String service, @PathParam("api") final String api,
+                          @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
+        return processRequest(service, RevolverHttpApiConfig.RequestMethod.OPTIONS, path, headers, uriInfo, body);
     }
 
 

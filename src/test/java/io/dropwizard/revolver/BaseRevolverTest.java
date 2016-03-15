@@ -41,11 +41,11 @@ public class BaseRevolverTest {
     protected final HealthCheckRegistry healthChecks = mock(HealthCheckRegistry.class);
     protected final JerseyEnvironment jerseyEnvironment = mock(JerseyEnvironment.class);
     protected final LifecycleEnvironment lifecycleEnvironment = new LifecycleEnvironment();
-    protected final Environment environment = mock(Environment.class);
+    protected static final Environment environment = mock(Environment.class);
     protected final Bootstrap<?> bootstrap = mock(Bootstrap.class);
     protected final Configuration configuration = mock(Configuration.class);
 
-    protected final InMemoryPersistenceProvider inMemoryPersistenceProvider = new InMemoryPersistenceProvider();
+    protected static final InMemoryPersistenceProvider inMemoryPersistenceProvider = new InMemoryPersistenceProvider();
 
     protected final RevolverBundle<Configuration> bundle = new RevolverBundle<Configuration>() {
 
@@ -77,6 +77,10 @@ public class BaseRevolverTest {
         simpleEndpoint.setHost("localhost");
         simpleEndpoint.setPort(9999);
 
+        val securedEndpoint = new SimpleEndpointSpec();
+        securedEndpoint.setHost("localhost");
+        securedEndpoint.setPort(9933);
+
         revolverConfig = RevolverConfig.builder()
                 .clientConfig(ClientConfig.builder()
                         .clientName("test-client")
@@ -90,6 +94,44 @@ public class BaseRevolverTest {
                         .enpoint(simpleEndpoint)
                         .service("test")
                         .type("http")
+                        .api(RevolverHttpApiConfig.configBuilder()
+                                .api("test")
+                                .method(RevolverHttpApiConfig.RequestMethod.GET)
+                                .method(RevolverHttpApiConfig.RequestMethod.POST)
+                                .method(RevolverHttpApiConfig.RequestMethod.DELETE)
+                                .method(RevolverHttpApiConfig.RequestMethod.PATCH)
+                                .method(RevolverHttpApiConfig.RequestMethod.PUT)
+                                .method(RevolverHttpApiConfig.RequestMethod.HEAD)
+                                .method(RevolverHttpApiConfig.RequestMethod.OPTIONS)
+                                .path("{version}/test")
+                                .runtime(HystrixCommandConfig.builder()
+                                        .threadPool(ThreadPoolConfig.builder()
+                                                .concurrency(1).timeout(2000)
+                                                .build())
+                                        .build()).build())
+                        .api(RevolverHttpApiConfig.configBuilder()
+                                .api("test_multi")
+                                .method(RevolverHttpApiConfig.RequestMethod.GET)
+                                .method(RevolverHttpApiConfig.RequestMethod.POST)
+                                .method(RevolverHttpApiConfig.RequestMethod.DELETE)
+                                .method(RevolverHttpApiConfig.RequestMethod.PATCH)
+                                .method(RevolverHttpApiConfig.RequestMethod.PUT)
+                                .method(RevolverHttpApiConfig.RequestMethod.HEAD)
+                                .method(RevolverHttpApiConfig.RequestMethod.OPTIONS)
+                                .path("{version}/test/{operation")
+                                .runtime(HystrixCommandConfig.builder()
+                                        .threadPool(ThreadPoolConfig.builder()
+                                                .concurrency(1).timeout(2000)
+                                                .build())
+                                        .build()).build())
+                        .build())
+                .service(RevolverHttpServiceConfig.builder()
+                        .authEnabled(false)
+                        .connectionPoolSize(1)
+                        .secured(true)
+                        .enpoint(securedEndpoint)
+                        .service("test_secured")
+                        .type("https")
                         .api(RevolverHttpApiConfig.configBuilder()
                                 .api("test")
                                 .method(RevolverHttpApiConfig.RequestMethod.GET)

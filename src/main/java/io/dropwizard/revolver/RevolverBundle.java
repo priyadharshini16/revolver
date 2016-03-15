@@ -74,10 +74,9 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     private static MultivaluedMap<String, ApiPathMap> serviceToPathMap = new MultivaluedHashMap<>();
 
-    private static final ObjectMapper msgPackObjectMapper = new ObjectMapper(new MessagePackFactory());
+    public static final ObjectMapper msgPackObjectMapper = new ObjectMapper(new MessagePackFactory());
 
-    private static final XmlMapper xmlObjectMapper = new XmlMapper();
-
+    public static final XmlMapper xmlObjectMapper = new XmlMapper();
 
     @Override
     public void initialize(final Bootstrap<?> bootstrap) {

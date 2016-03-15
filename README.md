@@ -39,7 +39,7 @@ Use the following maven dependency:
 <dependency>
     <groupId>io.dropwizard.xml</groupId>
     <artifactId>revolver</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
 

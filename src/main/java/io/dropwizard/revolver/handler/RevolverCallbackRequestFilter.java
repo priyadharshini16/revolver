@@ -49,10 +49,5 @@ public class RevolverCallbackRequestFilter implements ContainerRequestFilter {
         if(StringUtils.isBlank(transactionId)) {
             containerRequestContext.getHeaders().putSingle(RevolverHttpCommand.TXN_ID_HEADER, requestId);
         }
-
     }
-
-
-
-
 }

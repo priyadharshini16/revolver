@@ -6,6 +6,8 @@ import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -25,6 +27,7 @@ import javax.ws.rs.core.Response;
 @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MsgPackMediaType.APPLICATION_MSGPACK})
 @Slf4j
 @Singleton
+@Api(value = "RequestCallback", description = "Revolver gateway api for callbacks on mailbox requests")
 public class RevolverCallbackResource {
 
     public final PersistenceProvider persistenceProvider;
@@ -36,6 +39,7 @@ public class RevolverCallbackResource {
     @Path("/v1/callback/{requestId}")
     @POST
     @Metered
+    @ApiOperation(value = "Callback for updating responses for a given mailbox request")
     public Response handleCallback(@PathParam("requestId") final String requestId,
                                    @HeaderParam("X-RESPONSE-CODE") final String responseCode,
                                    @Context final HttpHeaders headers,

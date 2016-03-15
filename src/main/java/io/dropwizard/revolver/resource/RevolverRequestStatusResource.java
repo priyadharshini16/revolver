@@ -5,6 +5,8 @@ import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.base.core.RevolverRequestStateResponse;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,6 +31,7 @@ import java.util.Map;
 @AllArgsConstructor
 @Builder
 @Singleton
+@Api(value = "RequestStatus", description = "Revolver gateway api for getting request status for mailbox requests")
 public class RevolverRequestStatusResource {
 
     private PersistenceProvider persistenceProvider;
@@ -39,6 +42,7 @@ public class RevolverRequestStatusResource {
     @Path("/v1/request/status/{requestId}")
     @GET
     @Metered
+    @ApiOperation(value = "Get the status of the request in the mailbox")
     public Response requestStatus(@PathParam("requestId") final String requestId) {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
