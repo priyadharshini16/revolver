@@ -19,6 +19,7 @@ package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
 import io.dropwizard.msgpack.MsgPackMediaType;
+import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.base.core.RevolverRequestStateResponse;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
@@ -41,15 +42,13 @@ import java.util.Map;
  * @author phaneesh
  */
 @Path("/revolver")
-@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MsgPackMediaType.APPLICATION_MSGPACK})
-@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MsgPackMediaType.APPLICATION_MSGPACK})
 @Slf4j
 @Data
 @AllArgsConstructor
 @Builder
 @Singleton
-@Api(value = "RequestStatus", description = "Revolver gateway api for getting request status for mailbox requests")
-public class RevolverRequestStatusResource {
+@Api(value = "MailBox", description = "Revolver gateway api for interacting mailbox requests")
+public class RevolverMailboxResource {
 
     private PersistenceProvider persistenceProvider;
 
@@ -83,6 +82,23 @@ public class RevolverRequestStatusResource {
                     break;
             }
             return Response.ok().entity(response.build()).build();
+        } catch (Exception e) {
+            log.error("Error getting request state", e);
+            return Response.serverError().entity(error).build();
+        }
+    }
+
+    @Path("/v1/request/status/{requestId}")
+    @GET
+    @Metered
+    @ApiOperation(value = "Get the request in the mailbox")
+    public Response request(@PathParam("requestId") final String requestId) {
+        try {
+            RevolverCallbackRequest callbackRequest = persistenceProvider.request(requestId);
+            if(callbackRequest == null) {
+                return Response.status(Response.Status.NOT_FOUND).entity(notFound).build();
+            }
+            return Response.ok().entity(callbackRequest).build();
         } catch (Exception e) {
             log.error("Error getting request state", e);
             return Response.serverError().entity(error).build();

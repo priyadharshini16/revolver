@@ -17,15 +17,19 @@
 
 package io.dropwizard.revolver.persistence;
 
-import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
+import io.dropwizard.revolver.base.core.RevolverRequestState;
+import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Singleton;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * @author phaneesh
@@ -72,4 +76,25 @@ public class InMemoryPersistenceProvider implements PersistenceProvider {
         return callbackResponse.get(requestId);
     }
 
+    @Override
+    public List<RevolverCallbackRequest> requests(final String mailboxId) {
+        val requestIds = mailbox.get(mailboxId);
+        if(requestIds == null || requestIds.isEmpty()) {
+            return Collections.emptyList();
+        } else {
+            return requestIds.stream().filter(callbackRequests::containsKey)
+                    .map(callbackRequests::get).collect(Collectors.toList());
+        }
+    }
+
+    @Override
+    public List<RevolverCallbackResponse> responses(final String mailboxId) {
+        val requestIds = mailbox.get(mailboxId);
+        if(requestIds == null || requestIds.isEmpty()) {
+            return Collections.emptyList();
+        } else {
+            return requestIds.stream().filter(callbackResponse::containsKey)
+                    .map(callbackResponse::get).collect(Collectors.toList());
+        }
+    }
 }

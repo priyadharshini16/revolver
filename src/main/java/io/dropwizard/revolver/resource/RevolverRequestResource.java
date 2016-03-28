@@ -52,8 +52,6 @@ import java.util.concurrent.CompletableFuture;
  */
 @Path("/apis")
 @Slf4j
-@Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
-@Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
 @Singleton
 @Api(value = "RevolverGateway", description = "Revolver gateway api endpoints")
 public class RevolverRequestResource {
@@ -80,7 +78,8 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver GET api endpoint")
-    public Response get(@PathParam("service") final String service, @PathParam("api") final String api,
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    public Response get(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.GET, path, headers, uriInfo, null);
     }
@@ -89,7 +88,8 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver HEAD api endpoint")
-    public Response head(@PathParam("service") final String service, @PathParam("api") final String api,
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    public Response head(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.HEAD, path, headers, uriInfo, null);
     }
@@ -98,7 +98,9 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver POST api endpoint")
-    public Response post(@PathParam("service") final String service, @PathParam("api") final String api,
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    public Response post(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.POST, path, headers, uriInfo, body);
     }
@@ -107,7 +109,9 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver PUT api endpoint")
-    public Response put(@PathParam("service") final String service, @PathParam("api") final String api,
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    public Response put(@PathParam("service") final String service,
                          @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PUT, path, headers, uriInfo, body);
     }
@@ -116,7 +120,8 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver DELETE api endpoint")
-    public Response delete(@PathParam("service") final String service, @PathParam("api") final String api,
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    public Response delete(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.DELETE, path, headers, uriInfo, null);
     }
@@ -125,7 +130,9 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver PATCH api endpoint")
-    public Response patch(@PathParam("service") final String service, @PathParam("api") final String api,
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    public Response patch(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PATCH, path, headers, uriInfo, body);
     }
@@ -134,7 +141,9 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver OPTIONS api endpoint")
-    public Response options(@PathParam("service") final String service, @PathParam("api") final String api,
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    public Response options(@PathParam("service") final String service,
                           @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.OPTIONS, path, headers, uriInfo, body);
     }
@@ -182,9 +191,8 @@ public class RevolverRequestResource {
         );
         val httpResponse = Response.status(response.getStatusCode());
         response.getHeaders().keySet().stream().filter( h -> !h.equalsIgnoreCase("Content-Type")).forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
-
-        val requestMediaType = headers.getHeaderString("Accept");
-        val responseMediaType = response.getHeaders().getFirst("Content-Type");
+        val requestMediaType = StringUtils.isBlank(headers.getHeaderString("Accept")) ? "application/json" : headers.getHeaderString("Accept");
+        val responseMediaType = StringUtils.isBlank(response.getHeaders().getFirst("Content-Type")) ? "application/json" : response.getHeaders().getFirst("Content-Type");
         if(StringUtils.isBlank(requestMediaType)) {
             httpResponse.header("Content-Type", responseMediaType);
             httpResponse.entity(response.getBody());

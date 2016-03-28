@@ -40,8 +40,6 @@ import javax.ws.rs.core.Response;
  * @author phaneesh
  */
 @Path("/revolver")
-@Produces({MediaType.APPLICATION_JSON})
-@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MsgPackMediaType.APPLICATION_MSGPACK})
 @Slf4j
 @Singleton
 @Api(value = "RequestCallback", description = "Revolver gateway api for callbacks on mailbox requests")
@@ -57,6 +55,8 @@ public class RevolverCallbackResource {
     @POST
     @Metered
     @ApiOperation(value = "Callback for updating responses for a given mailbox request")
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     public Response handleCallback(@PathParam("requestId") final String requestId,
                                    @HeaderParam("X-RESPONSE-CODE") final String responseCode,
                                    @Context final HttpHeaders headers,

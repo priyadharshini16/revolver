@@ -45,7 +45,7 @@ import io.dropwizard.revolver.http.model.RevolverHttpRequest;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
 import io.dropwizard.revolver.resource.RevolverCallbackResource;
 import io.dropwizard.revolver.resource.RevolverRequestResource;
-import io.dropwizard.revolver.resource.RevolverRequestStatusResource;
+import io.dropwizard.revolver.resource.RevolverMailboxResource;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.xml.XmlBundle;
@@ -97,7 +97,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         environment.jersey().register(new RevolverCallbackRequestFilter());
         environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper, getPersistenceProvider()));
         environment.jersey().register(new RevolverCallbackResource(getPersistenceProvider()));
-        environment.jersey().register(new RevolverRequestStatusResource(getPersistenceProvider()));
+//        environment.jersey().register(new RevolverMailboxResource(getPersistenceProvider()));
     }
 
 

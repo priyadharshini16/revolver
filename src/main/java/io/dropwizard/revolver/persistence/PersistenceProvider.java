@@ -21,6 +21,8 @@ import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 
+import java.util.List;
+
 /**
  * @author phaneesh
  */
@@ -36,6 +38,10 @@ public interface PersistenceProvider {
 
     RevolverCallbackResponse response(final String requestId);
 
+    List<RevolverCallbackResponse> responses(final String mailboxId);
+
     RevolverCallbackRequest request(final String requestId);
+
+    List<RevolverCallbackRequest> requests(final String mailboxId);
 
 }

@@ -150,7 +150,7 @@ public class RevolverServiceResolver {
     @NoArgsConstructor
     @Builder
     private static final class ShardInfo {
-        private String shardId;
+        private String environment;
     }
 
     private static class SpecResolver implements SpecVisitor
@@ -175,7 +175,7 @@ public class RevolverServiceResolver {
                 throw new IllegalAccessError("Zookeeper is not initialized in emissary YAML config. Discovery based lookups will not be possible.");
             }
             final SimpleShardedServiceFinder<ShardInfo> finder = this.serviceFinders.get(rangerEndpointSpecification.getService()).getShardFinder();
-            final ServiceNode<ShardInfo> node = finder.get(ShardInfo.builder().shardId(rangerEndpointSpecification.getEnvironment()).build());
+            final ServiceNode<ShardInfo> node = finder.get(ShardInfo.builder().environment(rangerEndpointSpecification.getEnvironment()).build());
             this.endpoint = Endpoint.builder().host(node.getHost()).port(node.getPort()).build();
             System.out.println(node);
         }
