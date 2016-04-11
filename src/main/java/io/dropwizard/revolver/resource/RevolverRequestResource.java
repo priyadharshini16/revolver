@@ -21,6 +21,7 @@ import com.codahale.metrics.annotation.Metered;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.google.common.base.Strings;
 import io.dropwizard.jersey.PATCH;
 import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.RevolverBundle;
@@ -29,6 +30,7 @@ import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 import io.dropwizard.revolver.core.tracing.TraceInfo;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
+import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.model.RevolverHttpRequest;
 import io.dropwizard.revolver.http.model.RevolverHttpResponse;
@@ -37,7 +39,6 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Singleton;
 import javax.ws.rs.*;
@@ -53,7 +54,7 @@ import java.util.concurrent.CompletableFuture;
 @Path("/apis")
 @Slf4j
 @Singleton
-@Api(value = "RevolverGateway", description = "Revolver gateway api endpoints")
+@Api(value = "Revolver Gateway", description = "Revolver api gateway endpoints")
 public class RevolverRequestResource {
 
     private final ObjectMapper jsonObjectMapper;
@@ -155,14 +156,14 @@ public class RevolverRequestResource {
         if(apiMap == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity(Collections.singletonMap("message", "Bad Request")).build();
         }
-        val callMode = headers.getRequestHeaders().getFirst(RevolverHttpCommand.CALL_MODE_HEADER);
-        if(StringUtils.isBlank(callMode)) {
-          return executeInline(service, apiMap.getApi(), method, path, headers, uriInfo, body);
+        val callMode = headers.getRequestHeaders().getFirst(RevolversHttpHeaders.CALL_MODE_HEADER);
+        if(Strings.isNullOrEmpty(callMode)) {
+          return executeInline(service, apiMap.getApi().getApi(), method, path, headers, uriInfo, body);
         }
         switch (callMode.toUpperCase()) {
             case RevolverHttpCommand.CALL_MODE_POLLING:
             case RevolverHttpCommand.CALL_MODE_CALLBACK:
-                return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body);
+                return executeCommandAsync(service, apiMap.getApi().getApi(), method, path, headers, uriInfo, body);
         }
         return Response.status(Response.Status.BAD_REQUEST).build();
     }
@@ -176,8 +177,8 @@ public class RevolverRequestResource {
                 RevolverHttpRequest.builder()
                         .traceInfo(
                                 TraceInfo.builder()
-                                        .requestId(headers.getHeaderString(RevolverHttpCommand.REQUEST_ID_HEADER))
-                                        .transactionId(headers.getHeaderString(RevolverHttpCommand.TXN_ID_HEADER))
+                                        .requestId(headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER))
+                                        .transactionId(headers.getHeaderString(RevolversHttpHeaders.TXN_ID_HEADER))
                                         .timestamp(System.currentTimeMillis())
                                         .build())
                         .api(api)
@@ -191,9 +192,9 @@ public class RevolverRequestResource {
         );
         val httpResponse = Response.status(response.getStatusCode());
         response.getHeaders().keySet().stream().filter( h -> !h.equalsIgnoreCase("Content-Type")).forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
-        val requestMediaType = StringUtils.isBlank(headers.getHeaderString("Accept")) ? "application/json" : headers.getHeaderString("Accept");
-        val responseMediaType = StringUtils.isBlank(response.getHeaders().getFirst("Content-Type")) ? "application/json" : response.getHeaders().getFirst("Content-Type");
-        if(StringUtils.isBlank(requestMediaType)) {
+        val requestMediaType = Strings.isNullOrEmpty(headers.getHeaderString("Accept")) ? "application/json" : headers.getHeaderString("Accept");
+        val responseMediaType = Strings.isNullOrEmpty(response.getHeaders().getFirst("Content-Type")) ? "application/json" : response.getHeaders().getFirst("Content-Type");
+        if(Strings.isNullOrEmpty(requestMediaType)) {
             httpResponse.header("Content-Type", responseMediaType);
             httpResponse.entity(response.getBody());
         } else {
@@ -241,10 +242,11 @@ public class RevolverRequestResource {
     private Response executeCommandAsync(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method,
                                          final String path, final HttpHeaders headers,
                                          final UriInfo uriInfo, final byte[] body) throws Exception {
+        cleanHeaders(headers.getRequestHeaders());
         val httpCommand = RevolverBundle.getHttpCommand(service);
-        val requestId = headers.getHeaderString(RevolverHttpCommand.REQUEST_ID_HEADER);
-        val transactionId = headers.getHeaderString(RevolverHttpCommand.TXN_ID_HEADER);
-        val mailBoxId = headers.getHeaderString(RevolverHttpCommand.MAILBOX_ID_HEADER);
+        val requestId = headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
+        val transactionId = headers.getHeaderString(RevolversHttpHeaders.TXN_ID_HEADER);
+        val mailBoxId = headers.getHeaderString(RevolversHttpHeaders.MAILBOX_ID_HEADER);
         persistenceProvider.saveRequest(requestId, mailBoxId,
                 RevolverCallbackRequest.builder()
                         .api(api)
@@ -272,16 +274,6 @@ public class RevolverRequestResource {
                         .body(body)
                         .build()
         );
-        persistenceProvider.saveRequest(requestId, mailBoxId,
-                RevolverCallbackRequest.builder()
-                        .api(api)
-                        .service(service)
-                        .path(path)
-                        .headers(headers.getRequestHeaders())
-                        .queryParams(uriInfo.getQueryParameters())
-                        .body(body)
-                        .build()
-        );
         response.thenAcceptAsync( result -> {
             try {
                 persistenceProvider.saveResponse(requestId, RevolverCallbackResponse.builder()
@@ -295,21 +287,4 @@ public class RevolverRequestResource {
         });
         return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(System.currentTimeMillis()).build()).build();
     }
-//
-//    private void sendError(ContainerRequestContext containerRequestContext, Response.Status status) throws IOException {
-//        containerRequestContext.abortWith(
-//                Response.status(status).build()
-//        );
-//    }
-//
-//    private void sendAccepted(final String requestId, ContainerRequestContext containerRequestContext) {
-//        containerRequestContext.abortWith(
-//                Response.accepted().entity(
-//                        RevolverAckMessage.builder()
-//                                .acceptedAt(System.currentTimeMillis())
-//                                .requestId(requestId)
-//                                .build()
-//                ).build()
-//        );
-//    }
 }

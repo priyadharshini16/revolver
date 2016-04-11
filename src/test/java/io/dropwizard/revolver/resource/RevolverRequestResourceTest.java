@@ -21,6 +21,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import io.dropwizard.revolver.BaseRevolverTest;
 import io.dropwizard.revolver.RevolverBundle;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
+import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import io.dropwizard.testing.junit.ResourceTestRule;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -55,8 +56,8 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
         assertEquals(resources.client().target("/apis/test/v1/test").request()
-                .header(RevolverHttpCommand.REQUEST_ID_HEADER, UUID.randomUUID().toString())
-                .header(RevolverHttpCommand.TXN_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
                 .get().getStatus(), 200);
     }
 
@@ -67,8 +68,8 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
         assertEquals(resources.client().target("/apis/test/v1/test").request()
-                .header(RevolverHttpCommand.REQUEST_ID_HEADER, UUID.randomUUID().toString())
-                .header(RevolverHttpCommand.TXN_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
                 .post(null).getStatus(), 200);
     }
 
@@ -79,8 +80,8 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
         assertEquals(resources.client().target("/apis/test/v1/test").request()
-                .header(RevolverHttpCommand.REQUEST_ID_HEADER, UUID.randomUUID().toString())
-                .header(RevolverHttpCommand.TXN_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
                 .put(Entity.entity(Collections.singletonMap("test", "test"), MediaType.APPLICATION_JSON)).getStatus(), 200);
     }
 
@@ -91,8 +92,8 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
         assertEquals(resources.client().target("/apis/test/v1/test").request()
-                .header(RevolverHttpCommand.REQUEST_ID_HEADER, UUID.randomUUID().toString())
-                .header(RevolverHttpCommand.TXN_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
                 .delete().getStatus(), 200);
     }
 
@@ -103,8 +104,8 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
         assertEquals(resources.client().target("/apis/test/v1/test").request()
-                .header(RevolverHttpCommand.REQUEST_ID_HEADER, UUID.randomUUID().toString())
-                .header(RevolverHttpCommand.TXN_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
                 .head().getStatus(), 200);
     }
 
@@ -115,8 +116,8 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
         assertEquals(resources.client().target("/apis/test/v1/test").request()
-                .header(RevolverHttpCommand.REQUEST_ID_HEADER, UUID.randomUUID().toString())
-                .header(RevolverHttpCommand.TXN_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
                 .method("PATCH").getStatus(), 200);
     }
 
@@ -127,8 +128,8 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
         assertEquals(resources.client().target("/apis/test/v1/test").request()
-                .header(RevolverHttpCommand.REQUEST_ID_HEADER, UUID.randomUUID().toString())
-                .header(RevolverHttpCommand.TXN_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
+                .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
                 .options().getStatus(), 200);
     }
 

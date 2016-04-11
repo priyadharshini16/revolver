@@ -45,7 +45,7 @@ import javax.ws.rs.core.Response;
 @Api(value = "RequestCallback", description = "Revolver gateway api for callbacks on mailbox requests")
 public class RevolverCallbackResource {
 
-    public final PersistenceProvider persistenceProvider;
+    private final PersistenceProvider persistenceProvider;
 
     public RevolverCallbackResource(final PersistenceProvider persistenceProvider) {
         this.persistenceProvider = persistenceProvider;

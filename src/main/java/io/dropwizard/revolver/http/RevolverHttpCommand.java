@@ -57,14 +57,6 @@ import java.util.stream.Collectors;
 
 public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, RevolverHttpResponse, RevolverHttpContext, RevolverHttpServiceConfig, RevolverHttpApiConfig> {
 
-    public static final String TXN_ID_HEADER = "X-Transaction-ID";
-    public static final String REQUEST_ID_HEADER = "X-Request-ID";
-    public static final String PARENT_REQUEST_ID_HEADER = "X-Parent-Request-ID";
-    public static final String TIMESTAMP_HEADER = "X-Request-Timestamp";
-    public static final String CLIENT_HEADER = "X-Client-ID";
-    public static final String CALL_MODE_HEADER = "X-Call-Mode";
-
-    public static final String MAILBOX_ID_HEADER = "X-MailBox-Id";
 
     public static final String CALL_MODE_POLLING = "POLLING";
     public static final String CALL_MODE_CALLBACK = "CALLBACK";
@@ -91,10 +83,11 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
 
     @Override
     protected RevolverHttpResponse execute(final RevolverHttpContext context, final RevolverHttpRequest request) throws Exception {
-        if(getApiConfigurations().get(request.getApi()).getMethods().contains(request.getMethod())) {
+        final RevolverHttpApiConfig apiConfig = getApiConfigurations().get(request.getApi());
+        if(apiConfig.getMethods().contains(request.getMethod())) {
             switch (request.getMethod()) {
                 case GET: {
-                    return doGet(request);
+                    return doGet(request, apiConfig.isAsync());
                 }
                 case POST: {
                     return doPost(request);
@@ -135,7 +128,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
         }
     }
 
-    private RevolverHttpResponse doGet(final RevolverHttpRequest request) throws Exception {
+    private RevolverHttpResponse doGet(final RevolverHttpRequest request, final boolean async) throws Exception {
         val apiConfiguration = this.getApiConfigurations().get(request.getApi());
         val endpoint = this.serviceResolver.resolve((this.getServiceConfiguration()).getEndpoint());
         val url = generateURI(request, apiConfiguration, endpoint);
@@ -314,20 +307,20 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
             request.setHeaders(new MultivaluedHashMap<>());
         }
         List<String> existing = request.getHeaders().keySet().stream().map(String::toLowerCase).collect(Collectors.toList());
-        if (!existing.contains(TXN_ID_HEADER.toLowerCase())) {
-            requestBuilder.addHeader(TXN_ID_HEADER, spanInfo.getTransactionId());
+        if (!existing.contains(RevolversHttpHeaders.TXN_ID_HEADER.toLowerCase())) {
+            requestBuilder.addHeader(RevolversHttpHeaders.TXN_ID_HEADER, spanInfo.getTransactionId());
         }
-        if (!existing.contains(REQUEST_ID_HEADER.toLowerCase())) {
-            requestBuilder.addHeader(REQUEST_ID_HEADER, spanInfo.getRequestId());
+        if (!existing.contains(RevolversHttpHeaders.REQUEST_ID_HEADER.toLowerCase())) {
+            requestBuilder.addHeader(RevolversHttpHeaders.REQUEST_ID_HEADER, spanInfo.getRequestId());
         }
-        if (!existing.contains(PARENT_REQUEST_ID_HEADER.toLowerCase())) {
-            requestBuilder.addHeader(PARENT_REQUEST_ID_HEADER, spanInfo.getParentRequestId());
+        if (!existing.contains(RevolversHttpHeaders.PARENT_REQUEST_ID_HEADER.toLowerCase())) {
+            requestBuilder.addHeader(RevolversHttpHeaders.PARENT_REQUEST_ID_HEADER, spanInfo.getParentRequestId());
         }
-        if (!existing.contains(TIMESTAMP_HEADER.toLowerCase())) {
-            requestBuilder.addHeader(TIMESTAMP_HEADER, Long.toString(spanInfo.getTimestamp()));
+        if (!existing.contains(RevolversHttpHeaders.TIMESTAMP_HEADER.toLowerCase())) {
+            requestBuilder.addHeader(RevolversHttpHeaders.TIMESTAMP_HEADER, Long.toString(spanInfo.getTimestamp()));
         }
-        if (!existing.contains(CLIENT_HEADER.toLowerCase())) {
-            requestBuilder.addHeader(CLIENT_HEADER, this.getClientConfiguration().getClientName());
+        if (!existing.contains(RevolversHttpHeaders.CLIENT_HEADER.toLowerCase())) {
+            requestBuilder.addHeader(RevolversHttpHeaders.CLIENT_HEADER, this.getClientConfiguration().getClientName());
         }
     }
 

@@ -24,6 +24,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.ws.rs.core.MultivaluedMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author phaneesh
@@ -38,15 +40,17 @@ public class RevolverCallbackRequest {
 
     private String api;
 
+    private String method;
+
     private String mode;
 
     private String path;
 
-    private MultivaluedMap<String, String> queryParams;
+    private Map<String, List<String>> queryParams;
 
     private String callbackUri;
 
-    private MultivaluedMap<String, String> headers;
+    private Map<String, List<String>> headers;
 
     private byte[] body;
 }

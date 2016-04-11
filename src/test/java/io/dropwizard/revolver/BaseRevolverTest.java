@@ -24,16 +24,13 @@ import io.dropwizard.jersey.DropwizardResourceConfig;
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.jetty.MutableServletContextHandler;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
-import io.dropwizard.revolver.core.config.ClientConfig;
-import io.dropwizard.revolver.core.config.HystrixCommandConfig;
-import io.dropwizard.revolver.core.config.RevolverConfig;
-import io.dropwizard.revolver.core.config.RuntimeConfig;
+import io.dropwizard.revolver.core.config.*;
 import io.dropwizard.revolver.core.config.hystrix.ThreadPoolConfig;
+import io.dropwizard.revolver.discovery.ServiceResolverConfig;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
 import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import io.dropwizard.revolver.persistence.InMemoryPersistenceProvider;
-import io.dropwizard.revolver.persistence.PersistenceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +43,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -71,10 +69,6 @@ public class BaseRevolverTest {
             return revolverConfig;
         }
 
-        @Override
-        public PersistenceProvider getPersistenceProvider() {
-            return inMemoryPersistenceProvider;
-        }
     };
 
     protected RevolverConfig revolverConfig;
@@ -99,6 +93,13 @@ public class BaseRevolverTest {
         securedEndpoint.setPort(9933);
 
         revolverConfig = RevolverConfig.builder()
+                .mailBox(InMemoryMailBoxConfig.builder()
+                        .type("in_memory")
+                .build())
+                .serviceResolverConfig(ServiceResolverConfig.builder()
+                    .namespace("test")
+                    .useCurator(false)
+                .zkConnectionString("localhost:2181").build())
                 .clientConfig(ClientConfig.builder()
                         .clientName("test-client")
                         .build()

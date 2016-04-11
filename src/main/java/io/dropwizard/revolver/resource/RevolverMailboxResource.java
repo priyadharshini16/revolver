@@ -18,10 +18,11 @@
 package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
-import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
+import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.base.core.RevolverRequestStateResponse;
+import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -32,10 +33,13 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import javax.inject.Singleton;
-import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -88,7 +92,7 @@ public class RevolverMailboxResource {
         }
     }
 
-    @Path("/v1/request/status/{requestId}")
+    @Path("/v1/request/{requestId}")
     @GET
     @Metered
     @ApiOperation(value = "Get the request in the mailbox")
@@ -99,6 +103,40 @@ public class RevolverMailboxResource {
                 return Response.status(Response.Status.NOT_FOUND).entity(notFound).build();
             }
             return Response.ok().entity(callbackRequest).build();
+        } catch (Exception e) {
+            log.error("Error getting request state", e);
+            return Response.serverError().entity(error).build();
+        }
+    }
+
+    @Path("/v1/response/{requestId}")
+    @GET
+    @Metered
+    @ApiOperation(value = "Get the request in the mailbox")
+    public Response response(@PathParam("requestId") final String requestId) {
+        try {
+            RevolverCallbackResponse callbackResponse = persistenceProvider.response(requestId);
+            if(callbackResponse == null) {
+                return Response.status(Response.Status.NOT_FOUND).entity(notFound).build();
+            }
+            return Response.ok().entity(callbackResponse).build();
+        } catch (Exception e) {
+            log.error("Error getting request state", e);
+            return Response.serverError().entity(error).build();
+        }
+    }
+
+    @Path("/v1/requests")
+    @GET
+    @Metered
+    @ApiOperation(value = "Get the request in the mailbox")
+    public Response requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) {
+        try {
+            List<RevolverCallbackRequest> callbackRequests = persistenceProvider.requests(mailboxId);
+            if(callbackRequests == null) {
+                return Response.status(Response.Status.NOT_FOUND).entity(notFound).build();
+            }
+            return Response.ok().entity(callbackRequests).build();
         } catch (Exception e) {
             log.error("Error getting request state", e);
             return Response.serverError().entity(error).build();

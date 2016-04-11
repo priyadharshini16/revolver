@@ -66,6 +66,12 @@ public class RevolverConfig {
     @Singular
     private List<RevolverServiceConfig> services;
 
+    @NotNull
+    @Valid
+    @Getter
+    @Setter
+    private MailBoxConfig mailBox;
+
     public RevolverConfig() {
         this.global = new RuntimeConfig();
         this.serviceResolverConfig = new ServiceResolverConfig();

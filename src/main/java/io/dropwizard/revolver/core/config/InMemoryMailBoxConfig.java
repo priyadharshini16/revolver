@@ -15,15 +15,23 @@
  *
  */
 
-package io.dropwizard.revolver.base.core;
+package io.dropwizard.revolver.core.config;
+
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * @author phaneesh
  */
-public enum RevolverRequestState {
-    RECEIVED,
-    REQUESTED,
-    RESPONDED,
-    READ,
-    UNKNOWN
+@EqualsAndHashCode(callSuper = true)
+@Data
+@NoArgsConstructor
+public class InMemoryMailBoxConfig extends MailBoxConfig {
+
+    @Builder
+    public InMemoryMailBoxConfig(final String type) {
+        super(type);
+    }
 }

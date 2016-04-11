@@ -29,7 +29,10 @@ import com.netflix.hystrix.strategy.HystrixPlugins;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.msgpack.MsgPackBundle;
+import io.dropwizard.revolver.aeroapike.AerospikeConnectionManager;
 import io.dropwizard.revolver.core.RevolverExecutionException;
+import io.dropwizard.revolver.core.config.AerospikeMailBoxConfig;
+import io.dropwizard.revolver.core.config.InMemoryMailBoxConfig;
 import io.dropwizard.revolver.core.config.RevolverConfig;
 import io.dropwizard.revolver.core.config.RevolverServiceConfig;
 import io.dropwizard.revolver.discovery.RevolverServiceResolver;
@@ -42,15 +45,18 @@ import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import io.dropwizard.revolver.http.model.ApiPathMap;
 import io.dropwizard.revolver.http.model.RevolverHttpRequest;
+import io.dropwizard.revolver.persistence.AeroSpikePersistenceProvider;
+import io.dropwizard.revolver.persistence.InMemoryPersistenceProvider;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
 import io.dropwizard.revolver.resource.RevolverCallbackResource;
-import io.dropwizard.revolver.resource.RevolverRequestResource;
 import io.dropwizard.revolver.resource.RevolverMailboxResource;
+import io.dropwizard.revolver.resource.RevolverRequestResource;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.xml.XmlBundle;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.curator.framework.CuratorFramework;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 
 import javax.ws.rs.core.MultivaluedHashMap;
@@ -84,7 +90,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         configureXmlMapper();
         bootstrap.addBundle(new XmlBundle());
         bootstrap.addBundle(new MsgPackBundle());
-        if(HystrixPlugins.getInstance().getMetricsPublisher() == null) {
+        if (HystrixPlugins.getInstance().getMetricsPublisher() == null) {
             val publisher = new HystrixCodaHaleMetricsPublisher(bootstrap.getMetricRegistry());
             HystrixPlugins.getInstance().registerMetricsPublisher(publisher);
         }
@@ -94,10 +100,11 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     public void run(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
         initializeRevolver(configuration, environment);
         environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, getRevolverConfig(configuration).getHystrixStreamPath());
+        final PersistenceProvider persistenceProvider = getPersistenceProvider(configuration, environment);
         environment.jersey().register(new RevolverCallbackRequestFilter());
-        environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper, getPersistenceProvider()));
-        environment.jersey().register(new RevolverCallbackResource(getPersistenceProvider()));
-//        environment.jersey().register(new RevolverMailboxResource(getPersistenceProvider()));
+        environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper, persistenceProvider));
+        environment.jersey().register(new RevolverCallbackResource(persistenceProvider));
+        environment.jersey().register(new RevolverMailboxResource(persistenceProvider));
     }
 
 
@@ -107,6 +114,8 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(BasicAuthConfig.class, "basic"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(SimpleEndpointSpec.class, "simple"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RangerEndpointSpec.class, "ranger_sharded"));
+        bootstrap.getObjectMapper().registerSubtypes(new NamedType(InMemoryMailBoxConfig.class, "in_memory"));
+        bootstrap.getObjectMapper().registerSubtypes(new NamedType(AerospikeMailBoxConfig.class, "aerospike"));
     }
 
     private void configureXmlMapper() {
@@ -119,9 +128,9 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     }
 
     private Map<String, RevolverHttpApiConfig> generateApiConfigMap(final RevolverHttpServiceConfig serviceConfiguration) {
-        serviceConfiguration.getApis().forEach( apiConfig -> serviceToPathMap.add(serviceConfiguration.getService(),
+        serviceConfiguration.getApis().forEach(apiConfig -> serviceToPathMap.add(serviceConfiguration.getService(),
                 ApiPathMap.builder()
-                        .api(apiConfig.getApi())
+                        .api(apiConfig)
                         .path(generatePathExpression(apiConfig.getPath())).build()));
         final ImmutableMap.Builder<String, RevolverHttpApiConfig> configMapBuilder = ImmutableMap.builder();
         serviceConfiguration.getApis().forEach(apiConfig -> configMapBuilder.put(apiConfig.getApi(), apiConfig));
@@ -133,9 +142,9 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     }
 
     public static ApiPathMap matchPath(final String service, final String path) {
-        if(serviceToPathMap.containsKey(service)) {
-           final val apiMap = serviceToPathMap.get(service).stream().filter(api -> path.matches(api.getPath())).findFirst();
-           return apiMap.orElse(null);
+        if (serviceToPathMap.containsKey(service)) {
+            final val apiMap = serviceToPathMap.get(service).stream().filter(api -> path.matches(api.getPath())).findFirst();
+            return apiMap.orElse(null);
         } else {
             return null;
         }
@@ -151,17 +160,38 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     public abstract RevolverConfig getRevolverConfig(final T configuration);
 
-    public abstract PersistenceProvider getPersistenceProvider();
+    public PersistenceProvider getPersistenceProvider(final T configuration, final Environment environment) {
+        final RevolverConfig revolverConfig = getRevolverConfig(configuration);
+        switch (revolverConfig.getMailBox().getType()) {
+            case "in_memory":
+                return new InMemoryPersistenceProvider();
+            case "aerospike":
+                AerospikeConnectionManager.init((AerospikeMailBoxConfig)revolverConfig.getMailBox());
+                return new AeroSpikePersistenceProvider((AerospikeMailBoxConfig)revolverConfig.getMailBox(), environment.getObjectMapper());
+        }
+        throw new IllegalArgumentException("Invalid mailbox configuration");
+    }
+
+    public CuratorFramework getCurator() {
+        return null;
+    }
 
     private void initializeRevolver(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
-        val revolverConfig = getRevolverConfig(configuration);
-        final RevolverServiceResolver serviceNameResolver = new RevolverServiceResolver(revolverConfig.getServiceResolverConfig(), environment.getObjectMapper());
+        final RevolverConfig revolverConfig = getRevolverConfig(configuration);
+        final RevolverServiceResolver serviceNameResolver = revolverConfig.getServiceResolverConfig().isUseCurator() ? RevolverServiceResolver.usingCurator()
+                .curatorFramework(getCurator())
+                .objectMapper(environment.getObjectMapper())
+                .resolverConfig(revolverConfig.getServiceResolverConfig())
+                .build() : RevolverServiceResolver.builder()
+                .resolverConfig(revolverConfig.getServiceResolverConfig())
+                .objectMapper(environment.getObjectMapper())
+                .build();
         for (final RevolverServiceConfig config : revolverConfig.getServices()) {
             final String type = config.getType();
             switch (type) {
                 case "http":
                 case "https":
-                    final RevolverHttpServiceConfig httpConfig = (RevolverHttpServiceConfig)config;
+                    final RevolverHttpServiceConfig httpConfig = (RevolverHttpServiceConfig) config;
                     httpCommands.put(config.getService(), RevolverHttpCommand.builder()
                             .clientConfiguration(revolverConfig.getClientConfig())
                             .runtimeConfig(revolverConfig.getGlobal())
@@ -172,7 +202,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
                             }).build());
                     break;
                 default:
-                    log.warn("Unsupported Service type: " +type);
+                    log.warn("Unsupported Service type: " + type);
 
             }
         }

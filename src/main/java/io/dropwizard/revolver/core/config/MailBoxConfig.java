@@ -15,15 +15,21 @@
  *
  */
 
-package io.dropwizard.revolver.base.core;
+package io.dropwizard.revolver.core.config;
+
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author phaneesh
  */
-public enum RevolverRequestState {
-    RECEIVED,
-    REQUESTED,
-    RESPONDED,
-    READ,
-    UNKNOWN
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = true)
+public class MailBoxConfig {
+
+    private String type;
 }

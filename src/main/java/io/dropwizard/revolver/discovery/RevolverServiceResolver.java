@@ -55,6 +55,7 @@ public class RevolverServiceResolver {
     private Map<String, ShardedServiceDiscoveryInfo> serviceFinders = Maps.newConcurrentMap();
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
+    @Builder
     public RevolverServiceResolver(final ServiceResolverConfig resolverConfig, final ObjectMapper objectMapper) {
         this.resolverConfig = resolverConfig;
         this.objectMapper = objectMapper;
@@ -72,6 +73,14 @@ public class RevolverServiceResolver {
             discoverEnabled = false;
             curatorFramework = null;
         }
+    }
+
+    @Builder(builderMethodName = "usingCurator")
+    public RevolverServiceResolver(final ServiceResolverConfig resolverConfig, final ObjectMapper objectMapper, final CuratorFramework curatorFramework) {
+        this.resolverConfig = resolverConfig;
+        this.objectMapper = objectMapper;
+        this.curatorFramework = curatorFramework;
+        this.discoverEnabled = true;
     }
 
     public Endpoint resolve(final EndpointSpec endpointSpecification) {

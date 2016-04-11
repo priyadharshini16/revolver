@@ -17,6 +17,7 @@
 
 package io.dropwizard.revolver.http.model;
 
+import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import lombok.*;
 
 /**
@@ -29,7 +30,7 @@ import lombok.*;
 @EqualsAndHashCode
 public class ApiPathMap {
 
-    private String api;
+    private RevolverHttpApiConfig api;
 
     private String path;
 }

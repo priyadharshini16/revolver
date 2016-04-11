@@ -16,17 +16,21 @@
  */
 package io.dropwizard.revolver.handler;
 
-import io.dropwizard.revolver.http.RevolverHttpCommand;
+import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
+import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.Provider;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -37,18 +41,34 @@ import java.util.UUID;
 @Priority(Priorities.AUTHENTICATION)
 public class RevolverCallbackRequestFilter implements ContainerRequestFilter {
 
+    private static final String FORWARDED_FOR = "X-FORWARDED-FOR";
+
     @Override
     public void filter(final ContainerRequestContext containerRequestContext) throws IOException {
-        String requestId = containerRequestContext.getHeaderString(RevolverHttpCommand.REQUEST_ID_HEADER);
-        val transactionId = containerRequestContext.getHeaderString(RevolverHttpCommand.TXN_ID_HEADER);
+        String requestId = containerRequestContext.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
+        val transactionId = containerRequestContext.getHeaderString(RevolversHttpHeaders.TXN_ID_HEADER);
         val host = containerRequestContext.getHeaderString("host");
-        containerRequestContext.getHeaders().putSingle("X-FORWARDED-FOR", host);
-        if(StringUtils.isBlank(requestId)) {
+        containerRequestContext.getHeaders().putSingle(FORWARDED_FOR, host);
+        if(Strings.isNullOrEmpty(requestId)) {
             requestId = UUID.randomUUID().toString();
-            containerRequestContext.getHeaders().putSingle(RevolverHttpCommand.REQUEST_ID_HEADER, requestId);
+            containerRequestContext.getHeaders().putSingle(RevolversHttpHeaders.REQUEST_ID_HEADER, requestId);
         }
-        if(StringUtils.isBlank(transactionId)) {
-            containerRequestContext.getHeaders().putSingle(RevolverHttpCommand.TXN_ID_HEADER, requestId);
+        if(Strings.isNullOrEmpty(transactionId)) {
+            containerRequestContext.getHeaders().putSingle(RevolversHttpHeaders.TXN_ID_HEADER, requestId);
+        }
+        if(Strings.isNullOrEmpty(containerRequestContext.getHeaderString(RevolversHttpHeaders.TIMESTAMP_HEADER))) {
+            containerRequestContext.getHeaders().putSingle(RevolversHttpHeaders.TIMESTAMP_HEADER, Instant.now().toString());
+        }
+        //Default Accept & Content-Type to application/json
+        if(Strings.isNullOrEmpty(containerRequestContext.getHeaderString(HttpHeaders.ACCEPT))) {
+            containerRequestContext.getHeaders().putSingle(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON);
+        }
+        if(Strings.isNullOrEmpty(containerRequestContext.getHeaderString(HttpHeaders.CONTENT_TYPE))) {
+            containerRequestContext.getHeaders().putSingle(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+        }
+        //Default encoding to UTF-8
+        if(Strings.isNullOrEmpty(containerRequestContext.getHeaderString(HttpHeaders.CONTENT_ENCODING))) {
+            containerRequestContext.getHeaders().putSingle(HttpHeaders.CONTENT_ENCODING, Charsets.UTF_8.name());
         }
     }
 }

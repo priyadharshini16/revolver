@@ -35,7 +35,11 @@ import java.util.Set;
 @NoArgsConstructor
 public class RevolverHttpApiConfig extends CommandHandlerConfig {
 
+    @NotNull
+    @NotEmpty
     private String path;
+
+    private boolean async = false;
 
     @NotNull
     @NotEmpty

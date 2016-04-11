@@ -15,15 +15,19 @@
  *
  */
 
-package io.dropwizard.revolver.base.core;
+package io.dropwizard.revolver.http;
 
 /**
  * @author phaneesh
  */
-public enum RevolverRequestState {
-    RECEIVED,
-    REQUESTED,
-    RESPONDED,
-    READ,
-    UNKNOWN
+public class RevolversHttpHeaders {
+
+    public static final String TXN_ID_HEADER = "X-TRANSACTION-ID";
+    public static final String REQUEST_ID_HEADER = "X-REQUEST-ID";
+    public static final String PARENT_REQUEST_ID_HEADER = "X-PARENT-REQUEST-ID";
+    public static final String TIMESTAMP_HEADER = "X-REQUEST-TIMESTAMP";
+    public static final String CLIENT_HEADER = "X-CLIENT-ID";
+    public static final String CALL_MODE_HEADER = "X-CALL-MODE";
+    public static final String MAILBOX_ID_HEADER = "X-MAILBOX-ID";
+
 }
