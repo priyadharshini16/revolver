@@ -18,10 +18,12 @@
 package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
+import com.google.common.base.Strings;
 import com.google.common.io.ByteStreams;
 import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
-import io.dropwizard.revolver.base.core.RevolverRequestState;
+import io.dropwizard.revolver.callback.CallbackHandler;
+import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -45,10 +47,15 @@ import javax.ws.rs.core.Response;
 @Api(value = "RequestCallback", description = "Revolver gateway api for callbacks on mailbox requests")
 public class RevolverCallbackResource {
 
+    private static final String RESPONSE_CODE_HEADER = "X-RESPONSE-CODE";
+
     private final PersistenceProvider persistenceProvider;
 
-    public RevolverCallbackResource(final PersistenceProvider persistenceProvider) {
+    private final CallbackHandler callbackHandler;
+
+    public RevolverCallbackResource(final PersistenceProvider persistenceProvider, final CallbackHandler callbackHandler) {
         this.persistenceProvider = persistenceProvider;
+        this.callbackHandler = callbackHandler;
     }
 
     @Path("/v1/callback/{requestId}")
@@ -58,17 +65,23 @@ public class RevolverCallbackResource {
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     public Response handleCallback(@PathParam("requestId") final String requestId,
-                                   @HeaderParam("X-RESPONSE-CODE") final String responseCode,
+                                   @HeaderParam(RESPONSE_CODE_HEADER) final String responseCode,
                                    @Context final HttpHeaders headers,
                                    @Context final HttpServletRequest request) {
         try {
+            final val callbackRequest = persistenceProvider.request(requestId);
+            if(callbackRequest == null) {
+                return Response.status(Response.Status.BAD_REQUEST).build();
+            }
             val response = RevolverCallbackResponse.builder()
                     .body(ByteStreams.toByteArray(request.getInputStream()))
                     .headers(headers.getRequestHeaders())
-                    .statusCode(responseCode != null ? Integer.parseInt(responseCode) : 200)
+                    .statusCode(responseCode != null ? Integer.parseInt(responseCode) : Response.Status.OK.getStatusCode())
                     .build();
             persistenceProvider.saveResponse(requestId, response);
-            persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
+            if(callbackRequest.getMode() != null && callbackRequest.getMode().equals(RevolverHttpCommand.CALL_MODE_CALLBACK) && !Strings.isNullOrEmpty(callbackRequest.getCallbackUri())) {
+                callbackHandler.handle(requestId);
+            }
             return Response.accepted().build();
         } catch(Exception e) {
             log.error("Callback error", e);

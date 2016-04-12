@@ -22,6 +22,7 @@ import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.base.core.RevolverRequestStateResponse;
+import io.dropwizard.revolver.exception.RevolverException;
 import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
 import io.swagger.annotations.Api;
@@ -30,7 +31,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
@@ -63,32 +64,57 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get the status of the request in the mailbox")
-    public Response requestStatus(@PathParam("requestId") final String requestId) {
+    public RevolverRequestStateResponse requestStatus(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
             if(state == null) {
-                return Response.status(Response.Status.NOT_FOUND).entity(notFound).build();
+                throw RevolverException.builder()
+                        .status(Response.Status.NOT_FOUND.getStatusCode())
+                        .message("Not found")
+                        .errorCode("R002")
+                        .build();
             }
-            val response = RevolverRequestStateResponse.builder()
-                    .requestId(requestId);
-            switch (state) {
-                case READ:
-                    response.state("COMPLETED");
-                    break;
-                case RECEIVED:
-                    response.state("RECEIVED");
-                    break;
-                case REQUESTED:
-                    response.state("REQUESTED");
-                    break;
-                case RESPONDED:
-                    response.state("RESPONDED");
-                    break;
-            }
-            return Response.ok().entity(response.build()).build();
+            return RevolverRequestStateResponse.builder()
+                    .requestId(requestId)
+                    .state(state.name())
+                    .build();
         } catch (Exception e) {
             log.error("Error getting request state", e);
-            return Response.serverError().entity(error).build();
+            throw RevolverException.builder()
+                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+                    .errorCode("R001")
+            .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+        }
+    }
+
+    @Path("/v1/request/ack/{requestId}")
+    @GET
+    @Metered
+    @ApiOperation(value = "Get the status of the request in the mailbox")
+    public Response ack(@PathParam("requestId") final String requestId) throws RevolverException {
+        try {
+            RevolverRequestState state = persistenceProvider.requestState(requestId);
+            if(state == null) {
+                throw RevolverException.builder()
+                        .status(Response.Status.NOT_FOUND.getStatusCode())
+                        .message("Not found")
+                        .errorCode("R002")
+                        .build();
+            }
+            switch (state) {
+                case RESPONDED:
+                case ERROR:
+                    persistenceProvider.setRequestState(requestId, RevolverRequestState.READ);
+                    return Response.accepted().build();
+                default:
+                    return Response.status(Response.Status.BAD_REQUEST).build();
+            }
+        } catch (Exception e) {
+            log.error("Error getting request state", e);
+            throw RevolverException.builder()
+                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+                    .errorCode("R001")
+                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
         }
     }
 
@@ -96,16 +122,24 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get the request in the mailbox")
-    public Response request(@PathParam("requestId") final String requestId) {
+    public RevolverCallbackRequest request(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverCallbackRequest callbackRequest = persistenceProvider.request(requestId);
             if(callbackRequest == null) {
-                return Response.status(Response.Status.NOT_FOUND).entity(notFound).build();
+                throw RevolverException.builder()
+                        .status(Response.Status.NOT_FOUND.getStatusCode())
+                        .message("Not found")
+                        .errorCode("R002")
+                        .build();
             }
-            return Response.ok().entity(callbackRequest).build();
+            return callbackRequest;
         } catch (Exception e) {
-            log.error("Error getting request state", e);
-            return Response.serverError().entity(error).build();
+            log.error("Error getting request", e);
+            throw RevolverException.builder()
+                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+                    .errorCode("R001")
+                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+
         }
     }
 
@@ -113,33 +147,73 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get the request in the mailbox")
-    public Response response(@PathParam("requestId") final String requestId) {
+    public RevolverCallbackResponse response(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverCallbackResponse callbackResponse = persistenceProvider.response(requestId);
             if(callbackResponse == null) {
-                return Response.status(Response.Status.NOT_FOUND).entity(notFound).build();
+                throw RevolverException.builder()
+                        .status(Response.Status.NOT_FOUND.getStatusCode())
+                        .message("Not found")
+                        .errorCode("R002")
+                        .build();
             }
-            return Response.ok().entity(callbackResponse).build();
+            return callbackResponse;
         } catch (Exception e) {
-            log.error("Error getting request state", e);
-            return Response.serverError().entity(error).build();
+            log.error("Error getting response", e);
+            throw RevolverException.builder()
+                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+                    .errorCode("R001")
+                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
         }
     }
 
     @Path("/v1/requests")
     @GET
     @Metered
-    @ApiOperation(value = "Get the request in the mailbox")
-    public Response requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) {
+    @ApiOperation(value = "Get all the requests in the mailbox")
+    public List<RevolverCallbackRequest> requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
         try {
             List<RevolverCallbackRequest> callbackRequests = persistenceProvider.requests(mailboxId);
             if(callbackRequests == null) {
-                return Response.status(Response.Status.NOT_FOUND).entity(notFound).build();
+                throw RevolverException.builder()
+                        .status(Response.Status.NOT_FOUND.getStatusCode())
+                        .message("Not found")
+                        .errorCode("R002")
+                        .build();
             }
-            return Response.ok().entity(callbackRequests).build();
+            return callbackRequests;
         } catch (Exception e) {
-            log.error("Error getting request state", e);
-            return Response.serverError().entity(error).build();
+            log.error("Error getting requests", e);
+            throw RevolverException.builder()
+                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+                    .errorCode("R001")
+                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+
+        }
+    }
+
+    @Path("/v1/responses")
+    @GET
+    @Metered
+    @ApiOperation(value = "Get all the responses in the mailbox")
+    public List<RevolverCallbackResponse> responses(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
+        try {
+            List<RevolverCallbackResponse> callbackResponses = persistenceProvider.responses(mailboxId);
+            if(callbackResponses == null) {
+                throw RevolverException.builder()
+                        .status(Response.Status.NOT_FOUND.getStatusCode())
+                        .message("Not found")
+                        .errorCode("R002")
+                        .build();
+            }
+            return callbackResponses;
+        } catch (Exception e) {
+            log.error("Error getting responses", e);
+            throw RevolverException.builder()
+                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+                    .errorCode("R001")
+                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+
         }
     }
 

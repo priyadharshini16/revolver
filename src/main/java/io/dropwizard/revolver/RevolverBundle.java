@@ -30,6 +30,7 @@ import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.msgpack.MsgPackBundle;
 import io.dropwizard.revolver.aeroapike.AerospikeConnectionManager;
+import io.dropwizard.revolver.callback.CallbackHandler;
 import io.dropwizard.revolver.core.RevolverExecutionException;
 import io.dropwizard.revolver.core.config.AerospikeMailBoxConfig;
 import io.dropwizard.revolver.core.config.InMemoryMailBoxConfig;
@@ -38,6 +39,7 @@ import io.dropwizard.revolver.core.config.RevolverServiceConfig;
 import io.dropwizard.revolver.discovery.RevolverServiceResolver;
 import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
+import io.dropwizard.revolver.exception.RevolverExceptionMapper;
 import io.dropwizard.revolver.handler.RevolverCallbackRequestFilter;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.auth.BasicAuthConfig;
@@ -100,10 +102,14 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     public void run(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
         initializeRevolver(configuration, environment);
         environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, getRevolverConfig(configuration).getHystrixStreamPath());
+        environment.jersey().register(new RevolverExceptionMapper());
         final PersistenceProvider persistenceProvider = getPersistenceProvider(configuration, environment);
+        final CallbackHandler callbackHandler = CallbackHandler.builder()
+                .persistenceProvider(persistenceProvider)
+                .build();
         environment.jersey().register(new RevolverCallbackRequestFilter());
         environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper, persistenceProvider));
-        environment.jersey().register(new RevolverCallbackResource(persistenceProvider));
+        environment.jersey().register(new RevolverCallbackResource(persistenceProvider, callbackHandler));
         environment.jersey().register(new RevolverMailboxResource(persistenceProvider));
     }
 
@@ -160,7 +166,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     public abstract RevolverConfig getRevolverConfig(final T configuration);
 
-    public PersistenceProvider getPersistenceProvider(final T configuration, final Environment environment) {
+    PersistenceProvider getPersistenceProvider(final T configuration, final Environment environment) {
         final RevolverConfig revolverConfig = getRevolverConfig(configuration);
         switch (revolverConfig.getMailBox().getType()) {
             case "in_memory":

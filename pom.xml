@@ -50,7 +50,7 @@
         <jackson.version>2.6.3</jackson.version>
         <xml.bundle>0.0.2</xml.bundle>
         <msgpack.bundle>0.0.1</msgpack.bundle>
-        <hystrix.version>1.5.1</hystrix.version>
+        <hystrix.version>1.5.2</hystrix.version>
         <ranger.version>0.2.1</ranger.version>
         <okhttp.version>3.2.0</okhttp.version>
         <woodstox.version>4.4.1</woodstox.version>

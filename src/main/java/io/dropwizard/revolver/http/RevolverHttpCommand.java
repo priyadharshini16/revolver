@@ -54,7 +54,6 @@ import java.util.stream.Collectors;
  * @author phaneesh
  */
 @Slf4j
-
 public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, RevolverHttpResponse, RevolverHttpContext, RevolverHttpServiceConfig, RevolverHttpApiConfig> {
 
 
@@ -87,7 +86,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
         if(apiConfig.getMethods().contains(request.getMethod())) {
             switch (request.getMethod()) {
                 case GET: {
-                    return doGet(request, apiConfig.isAsync());
+                    return doGet(request);
                 }
                 case POST: {
                     return doPost(request);
@@ -128,7 +127,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
         }
     }
 
-    private RevolverHttpResponse doGet(final RevolverHttpRequest request, final boolean async) throws Exception {
+    private RevolverHttpResponse doGet(final RevolverHttpRequest request) throws Exception {
         val apiConfiguration = this.getApiConfigurations().get(request.getApi());
         val endpoint = this.serviceResolver.resolve((this.getServiceConfiguration()).getEndpoint());
         val url = generateURI(request, apiConfiguration, endpoint);
@@ -195,8 +194,8 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
             request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
         }
         if(request.getBody() != null) {
-            if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst("Content-Type")))
-                httpRequest.patch(RequestBody.create(MediaType.parse(request.getHeaders().getFirst("Content-Type")), request.getBody()));
+            if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)))
+                httpRequest.patch(RequestBody.create(MediaType.parse(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)), request.getBody()));
             else
                 httpRequest.patch(RequestBody.create(MediaType.parse("*/*"), request.getBody()));
         } else {
@@ -216,8 +215,8 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
             request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
         }
         if(request.getBody() != null) {
-            if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst("Content-Type")))
-                httpRequest.post(RequestBody.create(MediaType.parse(request.getHeaders().getFirst("Content-Type")), request.getBody()));
+            if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)))
+                httpRequest.post(RequestBody.create(MediaType.parse(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)), request.getBody()));
             else
                 httpRequest.post(RequestBody.create(MediaType.parse("*/*"), request.getBody()));
         } else {
@@ -237,8 +236,8 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
             request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
         }
         if(request.getBody() != null) {
-            if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst("Content-Type")))
-                httpRequest.put(RequestBody.create(MediaType.parse(request.getHeaders().getFirst("Content-Type")), request.getBody()));
+            if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)))
+                httpRequest.put(RequestBody.create(MediaType.parse(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)), request.getBody()));
             else
                 httpRequest.put(RequestBody.create(MediaType.parse("*/*"), request.getBody()));
         } else {

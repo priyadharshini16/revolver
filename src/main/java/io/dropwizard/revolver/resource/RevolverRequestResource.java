@@ -28,6 +28,7 @@ import io.dropwizard.revolver.RevolverBundle;
 import io.dropwizard.revolver.base.core.RevolverAckMessage;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
+import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.core.tracing.TraceInfo;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.RevolversHttpHeaders;
@@ -44,6 +45,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -162,8 +164,12 @@ public class RevolverRequestResource {
         }
         switch (callMode.toUpperCase()) {
             case RevolverHttpCommand.CALL_MODE_POLLING:
+                return executeCommandAsync(service, apiMap.getApi().getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync());
             case RevolverHttpCommand.CALL_MODE_CALLBACK:
-                return executeCommandAsync(service, apiMap.getApi().getApi(), method, path, headers, uriInfo, body);
+                if(Strings.isNullOrEmpty(headers.getHeaderString(RevolversHttpHeaders.CALLBACK_URI_HEADER))) {
+                    return Response.status(Response.Status.BAD_REQUEST).build();
+                }
+                return executeCommandAsync(service, apiMap.getApi().getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync());
         }
         return Response.status(Response.Status.BAD_REQUEST).build();
     }
@@ -191,15 +197,15 @@ public class RevolverRequestResource {
                         .build()
         );
         val httpResponse = Response.status(response.getStatusCode());
-        response.getHeaders().keySet().stream().filter( h -> !h.equalsIgnoreCase("Content-Type")).forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
-        val requestMediaType = Strings.isNullOrEmpty(headers.getHeaderString("Accept")) ? "application/json" : headers.getHeaderString("Accept");
-        val responseMediaType = Strings.isNullOrEmpty(response.getHeaders().getFirst("Content-Type")) ? "application/json" : response.getHeaders().getFirst("Content-Type");
+        response.getHeaders().keySet().stream().filter( h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_TYPE)).forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
+        val requestMediaType = Strings.isNullOrEmpty(headers.getHeaderString(HttpHeaders.ACCEPT)) ? MediaType.APPLICATION_JSON : headers.getHeaderString(HttpHeaders.ACCEPT);
+        val responseMediaType = Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.APPLICATION_JSON : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
         if(Strings.isNullOrEmpty(requestMediaType)) {
-            httpResponse.header("Content-Type", responseMediaType);
+            httpResponse.header(HttpHeaders.CONTENT_TYPE, responseMediaType);
             httpResponse.entity(response.getBody());
         } else {
             if(requestMediaType.startsWith(responseMediaType)) {
-                httpResponse.header("Content-Type", responseMediaType);
+                httpResponse.header(HttpHeaders.CONTENT_TYPE, responseMediaType);
                 httpResponse.entity(response.getBody());
             } else {
                 Map<String, Object> responseData = null;
@@ -213,18 +219,17 @@ public class RevolverRequestResource {
                 if(responseData == null) {
                     httpResponse.entity(response.getBody());
                 } else {
-
                     if(requestMediaType.startsWith(MediaType.APPLICATION_JSON)) {
-                        httpResponse.header("Content-Type", MediaType.APPLICATION_JSON);
+                        httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
                         httpResponse.entity(jsonObjectMapper.writeValueAsBytes(responseData));
                     } else if(requestMediaType.startsWith(MediaType.APPLICATION_XML)) {
-                        httpResponse.header("Content-Type", MediaType.APPLICATION_XML);
+                        httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_XML);
                         httpResponse.entity(xmlObjectMapper.writeValueAsBytes(responseData));
                     } else if(requestMediaType.startsWith(MsgPackMediaType.APPLICATION_MSGPACK)) {
-                        httpResponse.header("Content-Type", MsgPackMediaType.APPLICATION_MSGPACK);
+                        httpResponse.header(HttpHeaders.CONTENT_TYPE, MsgPackMediaType.APPLICATION_MSGPACK);
                         httpResponse.entity(msgPackObjectMapper.writeValueAsBytes(responseData));
                     } else {
-                        httpResponse.header("Content-Type", MediaType.APPLICATION_JSON);
+                        httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
                         httpResponse.entity(jsonObjectMapper.writeValueAsBytes(responseData));
                     }
                 }
@@ -234,14 +239,12 @@ public class RevolverRequestResource {
     }
 
     private void cleanHeaders(final MultivaluedMap<String, String> headers) {
-        headers.remove("host");
-        headers.remove("Host");
-        headers.remove("HOST");
+        headers.remove(HttpHeaders.HOST);
     }
 
     private Response executeCommandAsync(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method,
                                          final String path, final HttpHeaders headers,
-                                         final UriInfo uriInfo, final byte[] body) throws Exception {
+                                         final UriInfo uriInfo, final byte[] body, final boolean isDownstreamAsync) throws Exception {
         cleanHeaders(headers.getRequestHeaders());
         val httpCommand = RevolverBundle.getHttpCommand(service);
         val requestId = headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
@@ -276,15 +279,23 @@ public class RevolverRequestResource {
         );
         response.thenAcceptAsync( result -> {
             try {
-                persistenceProvider.saveResponse(requestId, RevolverCallbackResponse.builder()
-                        .body(result.getBody())
-                        .headers(result.getHeaders())
-                        .statusCode(result.getStatusCode())
-                        .build());
+                if(isDownstreamAsync) {
+                    if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode() || result.getStatusCode() == Response.Status.OK.getStatusCode()) {
+                        persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
+                    } else {
+                        persistenceProvider.setRequestState(requestId, RevolverRequestState.ERROR);
+                    }
+                } else {
+                    persistenceProvider.saveResponse(requestId, RevolverCallbackResponse.builder()
+                            .body(result.getBody())
+                            .headers(result.getHeaders())
+                            .statusCode(result.getStatusCode())
+                            .build());
+                }
             } catch (Exception e) {
                 log.error("Error saving response:", e);
             }
         });
-        return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(System.currentTimeMillis()).build()).build();
+        return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build()).build();
     }
 }

@@ -25,5 +25,6 @@ public enum RevolverRequestState {
     REQUESTED,
     RESPONDED,
     READ,
+    ERROR,
     UNKNOWN
 }

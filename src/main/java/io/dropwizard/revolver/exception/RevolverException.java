@@ -15,20 +15,23 @@
  *
  */
 
-package io.dropwizard.revolver.http;
+package io.dropwizard.revolver.exception;
+
+import lombok.*;
 
 /**
  * @author phaneesh
  */
-public interface RevolversHttpHeaders {
+@EqualsAndHashCode(callSuper = false)
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class RevolverException extends Exception {
 
-    String TXN_ID_HEADER = "X-TRANSACTION-ID";
-    String REQUEST_ID_HEADER = "X-REQUEST-ID";
-    String PARENT_REQUEST_ID_HEADER = "X-PARENT-REQUEST-ID";
-    String TIMESTAMP_HEADER = "X-REQUEST-TIMESTAMP";
-    String CLIENT_HEADER = "X-CLIENT-ID";
-    String CALL_MODE_HEADER = "X-CALL-MODE";
-    String MAILBOX_ID_HEADER = "X-MAILBOX-ID";
-    String CALLBACK_URI_HEADER = "X-CALLBACK-URI";
+    private int status;
 
+    private String errorCode;
+
+    private String message;
 }
