@@ -29,10 +29,7 @@ import com.google.common.collect.Maps;
 import io.dropwizard.revolver.discovery.model.Endpoint;
 import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -52,6 +49,7 @@ public class RevolverServiceResolver {
     private final boolean discoverEnabled;
     private final CuratorFramework curatorFramework;
     private final ServiceResolverConfig resolverConfig;
+    @Getter
     private Map<String, ShardedServiceDiscoveryInfo> serviceFinders = Maps.newConcurrentMap();
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -143,7 +141,7 @@ public class RevolverServiceResolver {
     @Data
     @Builder
     @NoArgsConstructor
-    private static final class ShardedServiceDiscoveryInfo {
+    public static final class ShardedServiceDiscoveryInfo {
 
         private  String environment;
         private SimpleShardedServiceFinder<ShardInfo> shardFinder;
@@ -158,7 +156,7 @@ public class RevolverServiceResolver {
     @AllArgsConstructor
     @NoArgsConstructor
     @Builder
-    private static final class ShardInfo {
+    public static final class ShardInfo {
         private String environment;
     }
 

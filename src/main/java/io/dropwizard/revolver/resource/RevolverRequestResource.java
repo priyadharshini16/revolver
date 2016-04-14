@@ -196,47 +196,52 @@ public class RevolverRequestResource {
                         .body(body)
                         .build()
         );
+        return transform(headers, response);
+     }
+
+    private Response transform(HttpHeaders headers, RevolverHttpResponse response) throws IOException {
         val httpResponse = Response.status(response.getStatusCode());
-        response.getHeaders().keySet().stream().filter( h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_TYPE)).forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
-        val requestMediaType = Strings.isNullOrEmpty(headers.getHeaderString(HttpHeaders.ACCEPT)) ? MediaType.APPLICATION_JSON : headers.getHeaderString(HttpHeaders.ACCEPT);
-        val responseMediaType = Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.APPLICATION_JSON : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
-        if(Strings.isNullOrEmpty(requestMediaType)) {
+        //Add all the headers except content type header
+        response.getHeaders().keySet().parallelStream()
+                .filter( h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
+                .forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
+        final String responseMediaType = Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.APPLICATION_OCTET_STREAM : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
+        final String requestMediaType = Strings.isNullOrEmpty(headers.getHeaderString(HttpHeaders.ACCEPT)) ? null : headers.getHeaderString(HttpHeaders.ACCEPT);
+        //If no no accept was specified in request; just send it as the same content type as response
+        //Also send it as the content type as response content type if there requested content type is the same;
+        if(Strings.isNullOrEmpty(requestMediaType) || requestMediaType.equals(responseMediaType)) {
             httpResponse.header(HttpHeaders.CONTENT_TYPE, responseMediaType);
             httpResponse.entity(response.getBody());
+            return httpResponse.build();
+        }
+        Map<String, Object> responseData = null;
+        if(responseMediaType.startsWith(MediaType.APPLICATION_JSON)) {
+            responseData = jsonObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>(){});
+        } else if(responseMediaType.startsWith(MediaType.APPLICATION_XML)) {
+            responseData = xmlObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>(){});
+        } else if(responseMediaType.startsWith(MsgPackMediaType.APPLICATION_MSGPACK)) {
+            responseData = msgPackObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+        }
+        if(responseData == null) {
+            httpResponse.entity(response.getBody());
         } else {
-            if(requestMediaType.startsWith(responseMediaType)) {
-                httpResponse.header(HttpHeaders.CONTENT_TYPE, responseMediaType);
-                httpResponse.entity(response.getBody());
+            if(requestMediaType.startsWith(MediaType.APPLICATION_JSON)) {
+                httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+                httpResponse.entity(jsonObjectMapper.writeValueAsBytes(responseData));
+            } else if(requestMediaType.startsWith(MediaType.APPLICATION_XML)) {
+                httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_XML);
+                httpResponse.entity(xmlObjectMapper.writeValueAsBytes(responseData));
+            } else if(requestMediaType.startsWith(MsgPackMediaType.APPLICATION_MSGPACK)) {
+                httpResponse.header(HttpHeaders.CONTENT_TYPE, MsgPackMediaType.APPLICATION_MSGPACK);
+                httpResponse.entity(msgPackObjectMapper.writeValueAsBytes(responseData));
             } else {
-                Map<String, Object> responseData = null;
-                if(responseMediaType.startsWith(MediaType.APPLICATION_JSON)) {
-                    responseData = jsonObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>(){});
-                } else if(responseMediaType.startsWith(MediaType.APPLICATION_XML)) {
-                    responseData = xmlObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>(){});
-                } else if(responseMediaType.startsWith(MsgPackMediaType.APPLICATION_MSGPACK)) {
-                    responseData = msgPackObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
-                }
-                if(responseData == null) {
-                    httpResponse.entity(response.getBody());
-                } else {
-                    if(requestMediaType.startsWith(MediaType.APPLICATION_JSON)) {
-                        httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
-                        httpResponse.entity(jsonObjectMapper.writeValueAsBytes(responseData));
-                    } else if(requestMediaType.startsWith(MediaType.APPLICATION_XML)) {
-                        httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_XML);
-                        httpResponse.entity(xmlObjectMapper.writeValueAsBytes(responseData));
-                    } else if(requestMediaType.startsWith(MsgPackMediaType.APPLICATION_MSGPACK)) {
-                        httpResponse.header(HttpHeaders.CONTENT_TYPE, MsgPackMediaType.APPLICATION_MSGPACK);
-                        httpResponse.entity(msgPackObjectMapper.writeValueAsBytes(responseData));
-                    } else {
-                        httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
-                        httpResponse.entity(jsonObjectMapper.writeValueAsBytes(responseData));
-                    }
-                }
+                httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+                httpResponse.entity(jsonObjectMapper.writeValueAsBytes(responseData));
             }
         }
         return httpResponse.build();
     }
+
 
     private void cleanHeaders(final MultivaluedMap<String, String> headers) {
         headers.remove(HttpHeaders.HOST);

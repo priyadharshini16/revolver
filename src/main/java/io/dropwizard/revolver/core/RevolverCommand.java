@@ -70,10 +70,7 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
         }
         final RequestType normalizedRequest = RevolverCommandHelper.normalize(request);
         final TraceInfo traceInfo = normalizedRequest.getTrace();
-        MDC.put("command", RevolverCommandHelper.getName(request));
-        MDC.put("transactionId", traceInfo.getTransactionId());
-        MDC.put("requestId", traceInfo.getRequestId());
-        MDC.put("parentRequestId", traceInfo.getParentRequestId());
+        addContextInfo(request, traceInfo);
         final Stopwatch watch = Stopwatch.createStarted();
         String errorMessage = null;
         try {
@@ -82,7 +79,7 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
             errorMessage = t.getLocalizedMessage();
             throw new RevolverExecutionException(RevolverExecutionException.Type.SERVICE_ERROR, t);
         } finally {
-            this.traceCollector.publish(Trace.builder()
+            publishTrace(Trace.builder()
                     .caller(this.clientConfiguration.getClientName())
                     .service(this.serviceConfiguration.getService())
                     .api(apiConfiguration.getApi())
@@ -96,21 +93,21 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
                     .error(!Strings.isNullOrEmpty(errorMessage))
                     .errorReason(errorMessage)
                     .build());
-            MDC.remove("command");
-            MDC.remove("requestId");
-            MDC.remove("transactionId");
-            MDC.remove("parentRequestId");
         }
+    }
+
+    private void addContextInfo(RequestType request, TraceInfo traceInfo) {
+        MDC.put("command", RevolverCommandHelper.getName(request));
+        MDC.put("transactionId", traceInfo.getTransactionId());
+        MDC.put("requestId", traceInfo.getRequestId());
+        MDC.put("parentRequestId", traceInfo.getParentRequestId());
     }
 
     @SuppressWarnings("unchecked")
     public CompletableFuture<ResponseType> executeAsync(final RequestType request) {
         final RequestType normalizedRequest = RevolverCommandHelper.normalize(request);
         final TraceInfo traceInfo = normalizedRequest.getTrace();
-        MDC.put("command", RevolverCommandHelper.getName(request));
-        MDC.put("transactionId", traceInfo.getTransactionId());
-        MDC.put("requestId", traceInfo.getRequestId());
-        MDC.put("parentRequestId", traceInfo.getParentRequestId());
+        addContextInfo(request, traceInfo);
         final Stopwatch watch = Stopwatch.createStarted();
         final Future<ResponseType> responseFuture = new RevolverCommandHandler(RevolverCommandHelper.setter(this, request.getApi()), this.context, this, normalizedRequest).queue();
         return CompletableFuture.supplyAsync(() -> {
@@ -121,7 +118,7 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
                         errorMessage = RevolverExceptionHelper.getLeafErrorMessage(t);
                         throw new RevolverExecutionException(RevolverExecutionException.Type.SERVICE_ERROR, String.format("Error executing command %s", RevolverCommandHelper.getName(request)), RevolverExceptionHelper.getLeafThrowable(t));
                     } finally {
-                        this.traceCollector.publish(Trace.builder()
+                        publishTrace(Trace.builder()
                                 .caller(this.clientConfiguration.getClientName())
                                 .service(this.serviceConfiguration.getService())
                                 .api(request.getApi())
@@ -133,14 +130,23 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
                                 .attributes(traceInfo.getAttributes())
                                 .error(!Strings.isNullOrEmpty(errorMessage))
                                 .errorReason(errorMessage).build());
-                        MDC.remove("command");
-                        MDC.remove("requestId");
-                        MDC.remove("transactionId");
-                        MDC.remove("parentRequestId");
+                        removeContextInfo();
                     }
                 }
         );
     }
+
+    private void publishTrace(Trace build) {
+        traceCollector.publish(build);
+    }
+
+    private void removeContextInfo() {
+        MDC.remove("command");
+        MDC.remove("requestId");
+        MDC.remove("transactionId");
+        MDC.remove("parentRequestId");
+    }
+
 
     public boolean isFallbackEnabled() {
         return true;
@@ -150,8 +156,8 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
 
     protected abstract ResponseType fallback(final ContextType context, final RequestType request);
 
-    public ClientConfig getClientConfiguration() {
-        return this.clientConfiguration;
+    protected ClientConfig getClientConfiguration() {
+        return clientConfiguration;
     }
 
     public RuntimeConfig getRuntimeConfig() {
@@ -173,7 +179,7 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
         private final RequestType request;
         private final ContextType context;
 
-        public RevolverCommandHandler(final HystrixCommand.Setter setter, final ContextType context, final RevolverCommand<RequestType, ResponseType, ContextType, ServiceConfigurationType, CommandHandlerConfigurationType> handler, final RequestType request) {
+        RevolverCommandHandler(final HystrixCommand.Setter setter, final ContextType context, final RevolverCommand<RequestType, ResponseType, ContextType, ServiceConfigurationType, CommandHandlerConfigurationType> handler, final RequestType request) {
             super(setter);
             this.context = context;
             this.handler = handler;

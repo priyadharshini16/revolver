@@ -28,6 +28,7 @@ import com.netflix.hystrix.contrib.metrics.eventstream.HystrixMetricsStreamServl
 import com.netflix.hystrix.strategy.HystrixPlugins;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
+import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.msgpack.MsgPackBundle;
 import io.dropwizard.revolver.aeroapike.AerospikeConnectionManager;
 import io.dropwizard.revolver.callback.CallbackHandler;
@@ -52,6 +53,7 @@ import io.dropwizard.revolver.persistence.InMemoryPersistenceProvider;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
 import io.dropwizard.revolver.resource.RevolverCallbackResource;
 import io.dropwizard.revolver.resource.RevolverMailboxResource;
+import io.dropwizard.revolver.resource.RevolverMetadataResource;
 import io.dropwizard.revolver.resource.RevolverRequestResource;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -86,12 +88,15 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     public static final XmlMapper xmlObjectMapper = new XmlMapper();
 
+    private static RevolverServiceResolver serviceNameResolver = null;
+
     @Override
     public void initialize(final Bootstrap<?> bootstrap) {
         registerTypes(bootstrap);
         configureXmlMapper();
         bootstrap.addBundle(new XmlBundle());
         bootstrap.addBundle(new MsgPackBundle());
+        bootstrap.addBundle(new AssetsBundle("/revolver/dashboard/", "/revolver/dashboard/", "index.html"));
         if (HystrixPlugins.getInstance().getMetricsPublisher() == null) {
             val publisher = new HystrixCodaHaleMetricsPublisher(bootstrap.getMetricRegistry());
             HystrixPlugins.getInstance().registerMetricsPublisher(publisher);
@@ -111,6 +116,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper, persistenceProvider));
         environment.jersey().register(new RevolverCallbackResource(persistenceProvider, callbackHandler));
         environment.jersey().register(new RevolverMailboxResource(persistenceProvider));
+        environment.jersey().register(new RevolverMetadataResource(getRevolverConfig(configuration)));
     }
 
 
@@ -164,6 +170,10 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         return command;
     }
 
+    public static RevolverServiceResolver getServiceNameResolver() {
+        return serviceNameResolver;
+    }
+
     public abstract RevolverConfig getRevolverConfig(final T configuration);
 
     PersistenceProvider getPersistenceProvider(final T configuration, final Environment environment) {
@@ -184,7 +194,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     private void initializeRevolver(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
         final RevolverConfig revolverConfig = getRevolverConfig(configuration);
-        final RevolverServiceResolver serviceNameResolver = revolverConfig.getServiceResolverConfig().isUseCurator() ? RevolverServiceResolver.usingCurator()
+        serviceNameResolver = revolverConfig.getServiceResolverConfig().isUseCurator() ? RevolverServiceResolver.usingCurator()
                 .curatorFramework(getCurator())
                 .objectMapper(environment.getObjectMapper())
                 .resolverConfig(revolverConfig.getServiceResolverConfig())
