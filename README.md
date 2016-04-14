@@ -90,6 +90,10 @@ revolver:
               timeout: 10000
 ```
 
+Contributors
+------------
+* [@phaneeshn](https://twitter.com/phaneeshn)
+* [Shailesh Satarkar](https://in.linkedin.com/in/theinfiniteloop) - UI/UX Ninja
 
 LICENSE
 -------
