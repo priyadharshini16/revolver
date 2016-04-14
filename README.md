@@ -37,9 +37,9 @@ Use the following repository:
 Use the following maven dependency:
 ```xml
 <dependency>
-    <groupId>io.dropwizard.xml</groupId>
+    <groupId>io.dropwizard.revolver</groupId>
     <artifactId>revolver</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.9-SNAPSHOT</version>
 </dependency>
 ```
 

@@ -20,26 +20,26 @@
  */
 
 function checkServiceExists(service_name) {
-    return $("#" +service_name +"_collection_item").length > 0
+    return $("#" +service_name +"_service_item").length > 0;
 }
 
 function addService(service) {
-    var collectionContent = '<li>';
+    var collectionContent = '<li id="' +service.name +'_service_item">';
     collectionContent += '<div class="collapsible-header">';
     collectionContent += '<div class="api-collapsible">';
     if(service.status == "HEALTHY") {
-        collectionContent += '<i class="material-icons circle green service-status-icon"></i>';
+        collectionContent += '<i class="material-icons circle green service-status-icon" id="' +service.name +'_service_status_icon"></i>';
     } else if(service.status == "UNHEALTHY") {
-        collectionContent += '<i class="material-icons circle red service-status-icon"></i>';
+        collectionContent += '<i class="material-icons circle red service-status-icon" id="' +service.name +'_service_status_icon"></i>';
     } else {
-        collectionContent += '<i class="material-icons circle grey service-status-icon"></i>';
+        collectionContent += '<i class="material-icons circle grey service-status-icon" id="' +service.name +'_service_status_icon"></i>';
     }
     collectionContent += '<span class="service-status-icon title">' +service.name +'</span>';
     collectionContent += '<p>';
     collectionContent += '<span class="chip">Type: ' +service.type +'</span>';
-    collectionContent += '<span class="chip">Instances: ' +service.instances +'</span>';
-    collectionContent += '<span class="chip">Healthy: ' +service.healthy +'</span>';
-    collectionContent += '<span class="chip">Unhealthy: ' +service.unhealthy +'</span>';
+    collectionContent += '<span class="chip" id="' +service.name +'_total_instances_count">Instances: ' +service.instances +'</span>';
+    collectionContent += '<span class="chip" id="' +service.name +'_healthy_instances_count">Healthy: ' +service.healthy +'</span>';
+    collectionContent += '<span class="chip" id="' +service.name +'_unhealthy_instances_count">Unhealthy: ' +service.unhealthy +'</span>';
     collectionContent += '</p>';
     collectionContent += '</div>';
     collectionContent += '</div>';
@@ -49,6 +49,20 @@ function addService(service) {
     collectionContent += '</ul>';
     collectionContent += '</div>';
     $("#collection_services").append($(collectionContent));
+}
+
+function updateServiceStatus(service) {
+    $("#" +service.name +"_service_status_icon").removeClass("green").removeClass("red").removeClass("grey");
+    if(service.status == "HEALTHY") {
+        $("#" +service.name +"_service_status_icon").addClass("green");
+    } else if(service.status == "UNHEALTHY") {
+        $("#" +service.name +"_service_status_icon").addClass("red");
+    } else {
+        $("#" +service.name +"_service_status_icon").addClass("grey");
+    }
+    $("#" +service.name +"_total_instances_count").text('Instances: ' +service.instances);
+    $("#" +service.name +"_healthy_instances_count").text('Healthy: ' +service.healthy);
+    $("#" +service.name +"_unhealthy_instances_count").text('Unhealthy: ' +service.unhealthy);
 }
 
 function addApis(service) {
@@ -89,16 +103,22 @@ function loadData() {
         $.each(unhealthy, function(i, service) {
            if(!checkServiceExists(service.name)) {
                addService(service);
+           } else {
+               updateServiceStatus(service);
            }
         });
         $.each(healthy, function(i, service) {
             if(!checkServiceExists(service.name)) {
                 addService(service);
+            } else {
+                updateServiceStatus(service);
             }
         });
         $.each(unknown, function(i, service) {
             if(!checkServiceExists(service.name)) {
                 addService(service);
+            } else {
+                updateServiceStatus(service);
             }
         });
     });
@@ -116,5 +136,5 @@ $( document ).ready(function() {
             belowOrigin: false // Displays dropdown below the button
         }
     );
-   loadData();
+   $("#revolver_dashboard_content").repeat(5000, true, loadData());
 });
