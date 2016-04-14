@@ -15,22 +15,20 @@
  *
  */
 
-package io.dropwizard.revolver.http;
+package io.dropwizard.revolver.http.auth;
+
+import lombok.*;
 
 /**
  * @author phaneesh
  */
-public interface RevolversHttpHeaders {
-
-    String TXN_ID_HEADER = "X-TRANSACTION-ID";
-    String REQUEST_ID_HEADER = "X-REQUEST-ID";
-    String PARENT_REQUEST_ID_HEADER = "X-PARENT-REQUEST-ID";
-    String TIMESTAMP_HEADER = "X-REQUEST-TIMESTAMP";
-    String CLIENT_HEADER = "X-CLIENT-ID";
-    String CALL_MODE_HEADER = "X-CALL-MODE";
-    String MAILBOX_ID_HEADER = "X-MAILBOX-ID";
-    String CALLBACK_URI_HEADER = "X-CALLBACK-URI";
-    String CALLBACK_TIMEOUT_HEADER = "X-CALLBACK-TIMEOUT";
-    String CALLBACK_METHOD_HEADER = "X-CALLBACK-METHOD";
-
+@EqualsAndHashCode(callSuper = true)
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class TokenAuthConfig extends AuthConfig {
+    private String token;
+    private String prefix;
+    private String type;
 }

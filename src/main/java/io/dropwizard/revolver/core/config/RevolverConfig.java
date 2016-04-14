@@ -72,6 +72,10 @@ public class RevolverConfig {
     @Setter
     private MailBoxConfig mailBox;
 
+    @Getter
+    @Setter
+    private int callbackTimeout = 3000;
+
     public RevolverConfig() {
         this.global = new RuntimeConfig();
         this.serviceResolverConfig = new ServiceResolverConfig();

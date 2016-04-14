@@ -48,6 +48,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -69,7 +70,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
                                final Map<String, RevolverHttpApiConfig> apiConfigurations,
                                final TraceCollector traceCollector, final RevolverServiceResolver serviceResolver)
             throws CertificateException, NoSuchAlgorithmException, KeyStoreException,
-            IOException, KeyManagementException, UnrecoverableKeyException {
+            IOException, KeyManagementException, UnrecoverableKeyException, ExecutionException {
         super(new RevolverHttpContext(), clientConfiguration, runtimeConfig, serviceConfiguration, apiConfigurations, traceCollector);
         (this.serviceResolver = serviceResolver).register(serviceConfiguration.getEndpoint());
         this.client = RevolverHttpClientFactory.buildClient(serviceConfiguration);

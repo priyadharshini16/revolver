@@ -19,7 +19,11 @@ package io.dropwizard.revolver.http;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import io.dropwizard.revolver.http.auth.BasicAuthConfig;
+import io.dropwizard.revolver.http.auth.TokenAuthConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -27,11 +31,13 @@ import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.net.ssl.*;
+import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.Collections;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,11 +46,23 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class RevolverHttpClientFactory {
 
-    public static OkHttpClient buildClient(final RevolverHttpServiceConfig serviceConfiguration) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException, UnrecoverableKeyException {
+    private static LoadingCache<RevolverHttpServiceConfig, OkHttpClient> clientCache = CacheBuilder.newBuilder()
+            .build(new CacheLoader<RevolverHttpServiceConfig, OkHttpClient>() {
+                @Override
+                public OkHttpClient load(RevolverHttpServiceConfig serviceConfiguration) throws Exception {
+                    return getOkHttpClient(serviceConfiguration);
+                }
+            });
+
+    public static OkHttpClient buildClient(final RevolverHttpServiceConfig serviceConfiguration) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException, UnrecoverableKeyException, ExecutionException {
         Preconditions.checkNotNull(serviceConfiguration);
+        return clientCache.get(serviceConfiguration);
+    }
+
+    private static OkHttpClient getOkHttpClient(RevolverHttpServiceConfig serviceConfiguration) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, KeyManagementException, UnrecoverableKeyException {
         final OkHttpClient.Builder builder = new OkHttpClient.Builder();
-        if(serviceConfiguration.isAuthEnabled()) {
-            switch(serviceConfiguration.getAuth().getType().toLowerCase()) {
+        if (serviceConfiguration.isAuthEnabled()) {
+            switch (serviceConfiguration.getAuth().getType().toLowerCase()) {
                 case "basic":
                     val basicAuthConfig = (BasicAuthConfig) serviceConfiguration.getAuth();
                     if (!Strings.isNullOrEmpty(basicAuthConfig.getUsername())) {
@@ -53,15 +71,27 @@ public class RevolverHttpClientFactory {
                     builder.authenticator((route, response) -> {
                         String credentials = Credentials.basic(basicAuthConfig.getUsername(), basicAuthConfig.getPassword());
                         return response.request().newBuilder()
-                                .addHeader("Authorization", credentials)
+                                .addHeader(HttpHeaders.AUTHORIZATION, credentials)
                                 .build();
                     });
+                    break;
+                case "token":
+                    val tokenAuthConfig = (TokenAuthConfig) serviceConfiguration.getAuth();
+                    if(Strings.isNullOrEmpty(tokenAuthConfig.getPrefix())) { //No prefix check
+                        builder.authenticator((route, response) -> response.request().newBuilder()
+                                .addHeader(HttpHeaders.AUTHORIZATION, tokenAuthConfig.getToken())
+                                .build());
+                    } else { //with configured prefix
+                        builder.authenticator((route, response) -> response.request().newBuilder()
+                                .addHeader(HttpHeaders.AUTHORIZATION, String.format("%s %s", tokenAuthConfig.getPrefix(), tokenAuthConfig.getToken()))
+                                .build());
+                    }
                     break;
                 default:
                     throw new RuntimeException(String.format("Authentication type %s is not supported", serviceConfiguration.getAuth().getType()));
             }
         }
-        if(serviceConfiguration.isSecured()) {
+        if (serviceConfiguration.isSecured()) {
             final String keystorePath = serviceConfiguration.getKeyStorePath();
             final String keystorePassword = (serviceConfiguration.getKeystorePassword() == null) ? "" : serviceConfiguration.getKeystorePassword();
             ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.COMPATIBLE_TLS)
@@ -72,12 +102,12 @@ public class RevolverHttpClientFactory {
                     .build();
             builder.connectionSpecs(Collections.singletonList(spec));
             if (!StringUtils.isBlank(keystorePath)) {
-                 builder.socketFactory(getSSLContext(keystorePath, keystorePassword).getSocketFactory());
+                builder.socketFactory(getSSLContext(keystorePath, keystorePassword).getSocketFactory());
             } else {
                 builder.socketFactory(getSSLContext().getSocketFactory());
             }
         }
-        if(serviceConfiguration.getConnectionKeepAliveInMillis() <= 0 ) {
+        if (serviceConfiguration.getConnectionKeepAliveInMillis() <= 0) {
             builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), 5, TimeUnit.MINUTES));
         } else {
             builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), serviceConfiguration.getConnectionKeepAliveInMillis(), TimeUnit.MILLISECONDS));
@@ -96,7 +126,7 @@ public class RevolverHttpClientFactory {
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         keyManagerFactory.init(keyStore, keyStorePassword.toCharArray());
         final SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(keyManagerFactory.getKeyManagers(),trustManagerFactory.getTrustManagers(), new SecureRandom());
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
         return sslContext;
     }
 
@@ -109,10 +139,12 @@ public class RevolverHttpClientFactory {
 
     static class TrustEveryoneManager implements X509TrustManager {
         @Override
-        public void checkClientTrusted(final java.security.cert.X509Certificate[] chain, final String authType) throws CertificateException { }
+        public void checkClientTrusted(final java.security.cert.X509Certificate[] chain, final String authType) throws CertificateException {
+        }
 
         @Override
-        public void checkServerTrusted(final java.security.cert.X509Certificate[] chain, final String authType) throws CertificateException { }
+        public void checkServerTrusted(final java.security.cert.X509Certificate[] chain, final String authType) throws CertificateException {
+        }
 
         @Override
         public java.security.cert.X509Certificate[] getAcceptedIssuers() {

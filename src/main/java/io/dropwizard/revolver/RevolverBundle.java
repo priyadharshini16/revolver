@@ -44,6 +44,7 @@ import io.dropwizard.revolver.exception.RevolverExceptionMapper;
 import io.dropwizard.revolver.handler.RevolverCallbackRequestFilter;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.auth.BasicAuthConfig;
+import io.dropwizard.revolver.http.auth.TokenAuthConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import io.dropwizard.revolver.http.model.ApiPathMap;
@@ -73,6 +74,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author phaneesh
@@ -111,8 +113,9 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         final PersistenceProvider persistenceProvider = getPersistenceProvider(configuration, environment);
         final CallbackHandler callbackHandler = CallbackHandler.builder()
                 .persistenceProvider(persistenceProvider)
+                .revolverConfig(getRevolverConfig(configuration))
                 .build();
-        environment.jersey().register(new RevolverCallbackRequestFilter());
+        environment.jersey().register(new RevolverCallbackRequestFilter(getRevolverConfig(configuration)));
         environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper, persistenceProvider));
         environment.jersey().register(new RevolverCallbackResource(persistenceProvider, callbackHandler));
         environment.jersey().register(new RevolverMailboxResource(persistenceProvider));
@@ -124,6 +127,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RevolverHttpServiceConfig.class, "http"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RevolverHttpRequest.class, "http"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(BasicAuthConfig.class, "basic"));
+        bootstrap.getObjectMapper().registerSubtypes(new NamedType(TokenAuthConfig.class, "token"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(SimpleEndpointSpec.class, "simple"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RangerEndpointSpec.class, "ranger_sharded"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(InMemoryMailBoxConfig.class, "in_memory"));
@@ -208,14 +212,18 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
                 case "http":
                 case "https":
                     final RevolverHttpServiceConfig httpConfig = (RevolverHttpServiceConfig) config;
-                    httpCommands.put(config.getService(), RevolverHttpCommand.builder()
-                            .clientConfiguration(revolverConfig.getClientConfig())
-                            .runtimeConfig(revolverConfig.getGlobal())
-                            .serviceConfiguration(httpConfig).apiConfigurations(generateApiConfigMap(httpConfig))
-                            .serviceResolver(serviceNameResolver)
-                            .traceCollector(trace -> {
-                                //TODO: Put in a publisher if required
-                            }).build());
+                    try {
+                        httpCommands.put(config.getService(), RevolverHttpCommand.builder()
+                                .clientConfiguration(revolverConfig.getClientConfig())
+                                .runtimeConfig(revolverConfig.getGlobal())
+                                .serviceConfiguration(httpConfig).apiConfigurations(generateApiConfigMap(httpConfig))
+                                .serviceResolver(serviceNameResolver)
+                                .traceCollector(trace -> {
+                                    //TODO: Put in a publisher if required
+                                }).build());
+                    } catch (ExecutionException e) {
+                        log.error("Error creating http command: {}", config.getService(), e);
+                    }
                     break;
                 default:
                     log.warn("Unsupported Service type: " + type);

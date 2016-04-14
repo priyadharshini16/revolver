@@ -18,20 +18,42 @@
 package io.dropwizard.revolver.callback;
 
 import com.google.common.base.Strings;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableMap;
+import io.dropwizard.revolver.RevolverBundle;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
+import io.dropwizard.revolver.core.config.HystrixCommandConfig;
+import io.dropwizard.revolver.core.config.RevolverConfig;
+import io.dropwizard.revolver.core.config.hystrix.ThreadPoolConfig;
+import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
+import io.dropwizard.revolver.http.RevolverHttpCommand;
+import io.dropwizard.revolver.http.RevolversHttpHeaders;
+import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
+import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
+import io.dropwizard.revolver.http.model.RevolverHttpRequest;
+import io.dropwizard.revolver.http.model.RevolverHttpResponse;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import okhttp3.*;
 
-import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -44,6 +66,25 @@ import java.util.concurrent.ExecutionException;
 public class CallbackHandler {
 
     private PersistenceProvider persistenceProvider;
+
+    private RevolverConfig revolverConfig;
+
+    @Data
+    @Builder
+    @EqualsAndHashCode
+    public static class CallbackConfigKey {
+        private URI uri;
+        private RevolverCallbackRequest callbackRequest;
+    }
+
+    private static LoadingCache<CallbackConfigKey, RevolverHttpServiceConfig> clientLoadingCache = CacheBuilder.newBuilder()
+            .build(new CacheLoader<CallbackConfigKey, RevolverHttpServiceConfig>() {
+                @Override
+                public RevolverHttpServiceConfig load(CallbackConfigKey key) throws Exception {
+                    return buildConfiguration(key.callbackRequest, key.uri);
+                }
+            });
+
 
     public void handle(final String requestId) {
         final RevolverCallbackRequest request = persistenceProvider.request(requestId);
@@ -69,7 +110,7 @@ public class CallbackHandler {
             switch (uri.getScheme()) {
                 case "https":
                 case "http":
-                    makeCallback(requestId, uri);
+                    makeCallback(requestId, uri, request);
                 case "ranger":
                     log.warn("Ranger is not supported yet for request: {}", requestId);
                     break;
@@ -81,7 +122,7 @@ public class CallbackHandler {
         }
     }
 
-    private void makeCallback(final String requestId, final URI uri) {
+    private void makeCallback(final String requestId, final URI uri, final RevolverCallbackRequest callbackRequest) {
         val future = CompletableFuture.supplyAsync(() -> {
             final RevolverCallbackResponse response = persistenceProvider.response(requestId);
             if (response == null) {
@@ -89,34 +130,47 @@ public class CallbackHandler {
                 return false;
             }
             try {
-                OkHttpClient client = CallbackClientManager.getClient(uri.getHost());
-                Request.Builder httpRequest = new Request.Builder().url(uri.toURL());
-                MediaType mediatype = MediaType.parse("*/*");
-                if(response.getHeaders() != null) {
-                    response.getHeaders().forEach( (key, headers) ->
-                        headers.forEach( value -> httpRequest.addHeader(key, value)));
-                    if(response.getHeaders().containsKey(HttpHeaders.CONTENT_TYPE)) {
-                        mediatype = MediaType.parse(response.getHeaders().get(HttpHeaders.CONTENT_TYPE).get(0));
-                    }
-                }
-                if(response.getBody() != null) {
-                    httpRequest.post(RequestBody.create(mediatype, response.getBody()));
+                final RevolverHttpServiceConfig httpCommandConfig = buildConfiguration(callbackRequest, uri);
+                final RevolverHttpCommand httpCommand = buildCommand(httpCommandConfig);
+                final MultivaluedMap<String, String> requestHeaders = new MultivaluedHashMap<>();
+                response.getHeaders().forEach(requestHeaders::put);
+                final RevolverHttpRequest httpRequest = RevolverHttpRequest.builder()
+                        .path(uri.getRawPath())
+                        .api("callback")
+                        .body(response.getBody() == null ? new byte[0] : response.getBody())
+                        .headers(requestHeaders)
+                        .method(httpCommand.getApiConfigurations().get("callback").getMethods().stream().findFirst().get())
+                        .service(httpCommandConfig.getService())
+                        .build();
+                RevolverHttpResponse httpResponse = httpCommand.execute(httpRequest);
+                if(httpResponse.getStatusCode() >= 200 && httpResponse.getStatusCode() <= 210) {
+                    return true;
                 } else {
-                    httpRequest.post(RequestBody.create(mediatype, new byte[0]));
-                }
-                Response httpResponse = client.newCall(httpRequest.build()).execute();
-                if(!httpResponse.isSuccessful()) {
-                    log.error("Error from callback host: {} | Status Code: {} | Response Body: ", uri.getHost(), httpResponse.code(), httpResponse.body() != null ? httpResponse.body().string() : "NONE");
+                    log.error("Error from callback host: {} | Status Code: {} | Response Body: ", uri.getHost(), httpResponse.getStatusCode(), httpResponse.getBody() != null ? new String(httpResponse.getBody()) : "NONE");
                     return false;
                 }
-                return true;
-            } catch (ExecutionException e) {
-                log.error("Cannot get http client for callback host: {}", uri.getHost());
-                return false;
             } catch (MalformedURLException e) {
                 log.error("Invalid callback URL: {} for request: {}", uri.toString(), requestId);
                 return false;
             } catch (IOException e) {
+                log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
+                return false;
+            } catch (CertificateException e) {
+                log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
+                return false;
+            } catch (NoSuchAlgorithmException e) {
+                log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
+                return false;
+            } catch (UnrecoverableKeyException e) {
+                log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
+                return false;
+            } catch (KeyStoreException e) {
+                log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
+                return false;
+            } catch (KeyManagementException e) {
+                log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
+                return false;
+            } catch (ExecutionException e) {
                 log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
                 return false;
             }
@@ -126,5 +180,46 @@ public class CallbackHandler {
                 log.error("Error making callback for request: {}", requestId);
             }
         });
+    }
+
+    private static RevolverHttpServiceConfig buildConfiguration(final RevolverCallbackRequest callbackRequest, final URI uri) {
+        val simpleEndpoint = new SimpleEndpointSpec();
+        simpleEndpoint.setHost(uri.getHost());
+        simpleEndpoint.setPort((uri.getPort() == 0 || uri.getPort() == -1) ? 80 : uri.getPort());
+
+        return RevolverHttpServiceConfig.builder()
+                .authEnabled(false)
+                .connectionPoolSize(10)
+                .secured(false)
+                .enpoint(simpleEndpoint)
+                .service(uri.getHost().replace(".", "-"))
+                .type(uri.getScheme())
+                .api(RevolverHttpApiConfig.configBuilder()
+                        .api("callback")
+                        .method(RevolverHttpApiConfig.RequestMethod.valueOf(callbackRequest.getHeaders().get(RevolversHttpHeaders.CALLBACK_METHOD_HEADER).get(0)))
+                        .path("")
+                        .runtime(HystrixCommandConfig.builder()
+                                .threadPool(ThreadPoolConfig.builder()
+                                        .concurrency(10).timeout(Integer.parseInt(callbackRequest.getHeaders().get(RevolversHttpHeaders.CALLBACK_TIMEOUT_HEADER).get(0)))
+                                        .build())
+                                .build()).build()).build();
+    }
+
+    public RevolverHttpCommand buildCommand(final RevolverHttpServiceConfig httpConfig) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException, ExecutionException {
+        return RevolverHttpCommand.builder()
+                .clientConfiguration(revolverConfig.getClientConfig())
+                .runtimeConfig(revolverConfig.getGlobal())
+                .serviceConfiguration(httpConfig)
+                .apiConfigurations(generateApiConfigMap(httpConfig))
+                .serviceResolver(RevolverBundle.getServiceNameResolver())
+                .traceCollector(trace -> {
+                    //TODO: Put in a publisher if required
+                }).build();
+    }
+
+    private Map<String, RevolverHttpApiConfig> generateApiConfigMap(final RevolverHttpServiceConfig serviceConfiguration) {
+        final ImmutableMap.Builder<String, RevolverHttpApiConfig> configMapBuilder = ImmutableMap.builder();
+        serviceConfiguration.getApis().forEach(apiConfig -> configMapBuilder.put(apiConfig.getApi(), apiConfig));
+        return configMapBuilder.build();
     }
 }

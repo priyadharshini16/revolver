@@ -18,6 +18,7 @@ package io.dropwizard.revolver.handler;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
+import io.dropwizard.revolver.core.config.RevolverConfig;
 import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -42,6 +43,12 @@ import java.util.UUID;
 public class RevolverCallbackRequestFilter implements ContainerRequestFilter {
 
     private static final String FORWARDED_FOR = "X-FORWARDED-FOR";
+
+    private final RevolverConfig config;
+
+    public RevolverCallbackRequestFilter(RevolverConfig config) {
+        this.config = config;
+    }
 
     @Override
     public void filter(final ContainerRequestContext containerRequestContext) throws IOException {
@@ -70,5 +77,17 @@ public class RevolverCallbackRequestFilter implements ContainerRequestFilter {
         if(Strings.isNullOrEmpty(containerRequestContext.getHeaderString(HttpHeaders.CONTENT_ENCODING))) {
             containerRequestContext.getHeaders().putSingle(HttpHeaders.CONTENT_ENCODING, Charsets.UTF_8.name());
         }
+        //Check if callback is enabled
+        if(!Strings.isNullOrEmpty(containerRequestContext.getHeaderString(RevolversHttpHeaders.CALLBACK_URI_HEADER))) {
+            //Add timeout header if it is absent
+            if(Strings.isNullOrEmpty(containerRequestContext.getHeaderString(RevolversHttpHeaders.CALLBACK_TIMEOUT_HEADER))) {
+                containerRequestContext.getHeaders().putSingle(RevolversHttpHeaders.CALLBACK_TIMEOUT_HEADER, String.valueOf(config.getCallbackTimeout()));
+            }
+            //Add callback method header if it is absent
+            if(Strings.isNullOrEmpty(containerRequestContext.getHeaderString(RevolversHttpHeaders.CALLBACK_METHOD_HEADER))) {
+                containerRequestContext.getHeaders().putSingle(RevolversHttpHeaders.CALLBACK_METHOD_HEADER, "POST");
+            }
+        }
+
     }
 }
