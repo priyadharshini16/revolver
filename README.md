@@ -81,6 +81,7 @@ revolver:
         port: 80
       apis:
         - api: ping
+          async: false
           path: "{version}/56da42e80f0000ac31a427ce"
           methods:
             - GET
@@ -89,6 +90,9 @@ revolver:
               concurrency: 5
               timeout: 10000
 ```
+
+#### Dashboard
+![Dashboard](images/dashboard.png)
 
 Contributors
 ------------
