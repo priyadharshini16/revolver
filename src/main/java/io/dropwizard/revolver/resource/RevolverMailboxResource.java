@@ -34,10 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.inject.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 import java.util.Collections;
 import java.util.List;
@@ -88,7 +85,7 @@ public class RevolverMailboxResource {
     }
 
     @Path("/v1/request/ack/{requestId}")
-    @GET
+    @POST
     @Metered
     @ApiOperation(value = "Get the status of the request in the mailbox")
     public Response ack(@PathParam("requestId") final String requestId) throws RevolverException {

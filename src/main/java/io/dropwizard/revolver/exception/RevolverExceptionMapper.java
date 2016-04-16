@@ -17,6 +17,7 @@
 
 package io.dropwizard.revolver.exception;
 
+import com.google.common.collect.ImmutableMap;
 import io.dropwizard.msgpack.MsgPackMediaType;
 
 import javax.ws.rs.Produces;
@@ -35,7 +36,11 @@ public class RevolverExceptionMapper implements ExceptionMapper<RevolverExceptio
     @Override
     public Response toResponse(RevolverException exception) {
         return Response.status(exception.getStatus())
-                .entity(exception.getMessage())
+                .entity(
+                        ImmutableMap.builder()
+                                .put("errorCode", exception.getErrorCode())
+                                .put("message", exception.getMessage()).build()
+                )
                 .build();
     }
 }

@@ -29,6 +29,8 @@ import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.core.config.HystrixCommandConfig;
 import io.dropwizard.revolver.core.config.RevolverConfig;
 import io.dropwizard.revolver.core.config.hystrix.ThreadPoolConfig;
+import io.dropwizard.revolver.discovery.EndpointSpec;
+import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.RevolversHttpHeaders;
@@ -182,20 +184,41 @@ public class CallbackHandler {
         });
     }
 
-    private static RevolverHttpServiceConfig buildConfiguration(final RevolverCallbackRequest callbackRequest, final URI uri) {
-        val simpleEndpoint = new SimpleEndpointSpec();
-        simpleEndpoint.setHost(uri.getHost());
-        simpleEndpoint.setPort((uri.getPort() == 0 || uri.getPort() == -1) ? 80 : uri.getPort());
-
+    private static RevolverHttpServiceConfig buildConfiguration(final RevolverCallbackRequest callbackRequest, final URI uri) throws MalformedURLException {
+        EndpointSpec endpointSpec = null;
+        String apiName = "callback";
+        String serviceName = uri.getHost().replace(".", "-");
+        String type = null;
+        switch (uri.getScheme()) {
+            case "https":
+            case "http":
+                val simpleEndpoint = new SimpleEndpointSpec();
+                simpleEndpoint.setHost(uri.getHost());
+                simpleEndpoint.setPort((uri.getPort() == 0 || uri.getPort() == -1) ? 80 : uri.getPort());
+                endpointSpec = simpleEndpoint;
+                type = uri.getScheme();
+                break;
+            case "ranger": //format for ranger host: environment.service.api
+                val rangerEndpoint = new RangerEndpointSpec();
+                val discoveryData = uri.getHost().split("\\.");
+                if(discoveryData.length != 3) {
+                    throw new MalformedURLException("Invalid ranger host format. Accepted format is environment.service.api");
+                }
+                rangerEndpoint.setEnvironment(discoveryData[0]);
+                rangerEndpoint.setService(discoveryData[1]);
+                endpointSpec = rangerEndpoint;
+                type = "ranger_sharded";
+                apiName = discoveryData[2];
+        }
         return RevolverHttpServiceConfig.builder()
                 .authEnabled(false)
                 .connectionPoolSize(10)
                 .secured(false)
-                .enpoint(simpleEndpoint)
-                .service(uri.getHost().replace(".", "-"))
-                .type(uri.getScheme())
+                .enpoint(endpointSpec)
+                .service(serviceName)
+                .type(type)
                 .api(RevolverHttpApiConfig.configBuilder()
-                        .api("callback")
+                        .api(apiName)
                         .method(RevolverHttpApiConfig.RequestMethod.valueOf(callbackRequest.getHeaders().get(RevolversHttpHeaders.CALLBACK_METHOD_HEADER).get(0)))
                         .path("")
                         .runtime(HystrixCommandConfig.builder()
@@ -205,7 +228,7 @@ public class CallbackHandler {
                                 .build()).build()).build();
     }
 
-    public RevolverHttpCommand buildCommand(final RevolverHttpServiceConfig httpConfig) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException, ExecutionException {
+    private RevolverHttpCommand buildCommand(final RevolverHttpServiceConfig httpConfig) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException, ExecutionException {
         return RevolverHttpCommand.builder()
                 .clientConfiguration(revolverConfig.getClientConfig())
                 .runtimeConfig(revolverConfig.getGlobal())
