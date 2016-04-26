@@ -41,6 +41,8 @@ public class RevolverHttpApiConfig extends CommandHandlerConfig {
 
     private boolean async = false;
 
+    private boolean whitelist = false;
+
     @NotNull
     @NotEmpty
     @Singular

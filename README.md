@@ -83,6 +83,7 @@ revolver:
         - api: ping
           async: false
           path: "{version}/56da42e80f0000ac31a427ce"
+          whitelist: true #Optional metadata for external authentication & authorization systems. Omitting the config will not effect behaviour.
           methods:
             - GET
           authorization:  #Optional metadata for external authorization systems. Omitting the config will not effect behaviour  
