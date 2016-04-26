@@ -10,8 +10,8 @@ This bundle compiles only on Java 8.
 * Pluggable persistence provider for requests/responses
  
 ## Dependencies
-* xml-bundle
-* msgpack-bundle
+* [dropwizard-xml](https://github.com/phaneesh/xml-bundle)
+* [dropwizard-msgpack](https://github.com/phaneesh/msgpack-bundle)
 
 ## Usage
 Build a downstream proxy with ease that enables transparent callback support 
@@ -37,9 +37,9 @@ Use the following repository:
 Use the following maven dependency:
 ```xml
 <dependency>
-    <groupId>io.dropwizard.revolver</groupId>
-    <artifactId>revolver</artifactId>
-    <version>0.0.9-SNAPSHOT</version>
+    <groupId>io.dropwizard</groupId>
+    <artifactId>dropwizard-revolver</artifactId>
+    <version>1.0.0-rc2-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -85,6 +85,12 @@ revolver:
           path: "{version}/56da42e80f0000ac31a427ce"
           methods:
             - GET
+          authorization:  #Optional metadata for external authorization systems. Omitting the config will not effect behaviour  
+            type: dynamic #can 
+            methods:
+                - GET
+            roles:
+                - user
           runtime:
             threadPool:
               concurrency: 5

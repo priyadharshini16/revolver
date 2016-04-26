@@ -20,7 +20,6 @@ package io.dropwizard.revolver.resource;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import io.dropwizard.revolver.BaseRevolverTest;
 import io.dropwizard.revolver.RevolverBundle;
-import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import io.dropwizard.testing.junit.ResourceTestRule;
 import org.junit.ClassRule;
@@ -32,8 +31,8 @@ import javax.ws.rs.core.MediaType;
 import java.util.Collections;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author phaneesh
