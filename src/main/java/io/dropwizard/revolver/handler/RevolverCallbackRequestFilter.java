@@ -88,6 +88,5 @@ public class RevolverCallbackRequestFilter implements ContainerRequestFilter {
                 containerRequestContext.getHeaders().putSingle(RevolversHttpHeaders.CALLBACK_METHOD_HEADER, "POST");
             }
         }
-
     }
 }

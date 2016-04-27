@@ -65,20 +65,50 @@ public class RevolverCommandHelper {
         final RuntimeConfig runtimeConfig = commandHandler.getRuntimeConfig();
         final RevolverServiceConfig serviceConfiguration = commandHandler.getServiceConfiguration();
         final CommandHandlerConfig config = (CommandHandlerConfig) commandHandler.getApiConfigurations().get(api);
-        CircuitBreakerConfig circuitBreakerConfig = runtimeConfig.getCircuitBreaker();
-        if (null != config.getRuntime() && null != config.getRuntime().getCircuitBreaker()) {
+        CircuitBreakerConfig circuitBreakerConfig;
+        if(null != runtimeConfig) {
+            circuitBreakerConfig = runtimeConfig.getCircuitBreaker();
+        } else if (null != config.getRuntime() && null != config.getRuntime().getCircuitBreaker()) {
             circuitBreakerConfig = config.getRuntime().getCircuitBreaker();
         } else if (null != serviceConfiguration.getRuntime() && null != serviceConfiguration.getRuntime().getCircuitBreaker()) {
             circuitBreakerConfig = serviceConfiguration.getRuntime().getCircuitBreaker();
+        } else {
+            circuitBreakerConfig = new CircuitBreakerConfig();
         }
-        ThreadPoolConfig threadPoolConfig = runtimeConfig.getThreadPool();
-        if (null != config.getRuntime() && null != config.getRuntime().getThreadPool()) {
-            threadPoolConfig = config.getRuntime().getThreadPool();
-        } else if (null != serviceConfiguration.getRuntime() && null != serviceConfiguration.getRuntime().getThreadPool()) {
+        ThreadPoolConfig threadPoolConfig;
+        if(null != runtimeConfig) {
+            threadPoolConfig = runtimeConfig.getThreadPool();
+        } else if (null != serviceConfiguration.getRuntime() && null != serviceConfiguration.getRuntime().getThreadPool()){
             threadPoolConfig = serviceConfiguration.getRuntime().getThreadPool();
+        } else {
+            threadPoolConfig = new ThreadPoolConfig();
         }
-        final MetricsConfig metricsConfig = runtimeConfig.getMetrics();
+        MetricsConfig metricsConfig;
+        if(null != runtimeConfig) {
+            metricsConfig = runtimeConfig.getMetrics();
+        } else {
+            metricsConfig = new MetricsConfig();
+        }
         final String keyName = Joiner.on(".").join(commandHandler.getServiceConfiguration().getService(), api);
-        return HystrixCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(serviceConfiguration.getService())).andCommandPropertiesDefaults(HystrixCommandProperties.Setter().withExecutionIsolationStrategy(threadPoolConfig.isSemaphoreIsolated() ? HystrixCommandProperties.ExecutionIsolationStrategy.SEMAPHORE : HystrixCommandProperties.ExecutionIsolationStrategy.THREAD).withExecutionIsolationSemaphoreMaxConcurrentRequests(threadPoolConfig.getConcurrency()).withFallbackIsolationSemaphoreMaxConcurrentRequests(threadPoolConfig.getConcurrency()).withFallbackEnabled(commandHandler.isFallbackEnabled()).withCircuitBreakerErrorThresholdPercentage(circuitBreakerConfig.getErrorThresholdPercentage()).withCircuitBreakerRequestVolumeThreshold(circuitBreakerConfig.getNumAcceptableFailuresInTimeWindow()).withCircuitBreakerSleepWindowInMilliseconds(circuitBreakerConfig.getWaitTimeBeforeRetry()).withExecutionTimeoutInMilliseconds(threadPoolConfig.getTimeout()).withMetricsHealthSnapshotIntervalInMilliseconds(metricsConfig.getHealthCheckInterval()).withMetricsRollingPercentileBucketSize(metricsConfig.getPercentileBucketSize()).withMetricsRollingPercentileWindowInMilliseconds(metricsConfig.getPercentileTimeInMillis())).andCommandKey(HystrixCommandKey.Factory.asKey(keyName)).andThreadPoolKey(HystrixThreadPoolKey.Factory.asKey(keyName)).andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter().withCoreSize(threadPoolConfig.getConcurrency()).withMaxQueueSize(threadPoolConfig.getMaxRequestQueueSize()).withQueueSizeRejectionThreshold(threadPoolConfig.getDynamicRequestQueueSize()).withMetricsRollingStatisticalWindowBuckets(metricsConfig.getStatsBucketSize()).withMetricsRollingStatisticalWindowInMilliseconds(metricsConfig.getStatsTimeInMillis()));
+        return HystrixCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory
+                .asKey(serviceConfiguration.getService()))
+                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
+                        .withExecutionIsolationStrategy(threadPoolConfig.isSemaphoreIsolated() ? HystrixCommandProperties.ExecutionIsolationStrategy.SEMAPHORE : HystrixCommandProperties.ExecutionIsolationStrategy.THREAD)
+                        .withExecutionIsolationSemaphoreMaxConcurrentRequests(threadPoolConfig.getConcurrency())
+                        .withFallbackIsolationSemaphoreMaxConcurrentRequests(threadPoolConfig.getConcurrency())
+                        .withFallbackEnabled(commandHandler.isFallbackEnabled())
+                        .withCircuitBreakerErrorThresholdPercentage(circuitBreakerConfig.getErrorThresholdPercentage())
+                        .withCircuitBreakerRequestVolumeThreshold(circuitBreakerConfig.getNumAcceptableFailuresInTimeWindow())
+                        .withCircuitBreakerSleepWindowInMilliseconds(circuitBreakerConfig.getWaitTimeBeforeRetry())
+                        .withExecutionTimeoutInMilliseconds(threadPoolConfig.getTimeout())
+                        .withMetricsHealthSnapshotIntervalInMilliseconds(metricsConfig.getHealthCheckInterval())
+                        .withMetricsRollingPercentileBucketSize(metricsConfig.getPercentileBucketSize())
+                        .withMetricsRollingPercentileWindowInMilliseconds(metricsConfig.getPercentileTimeInMillis()))
+                .andCommandKey(HystrixCommandKey.Factory.asKey(keyName)).andThreadPoolKey(HystrixThreadPoolKey.Factory.asKey(keyName))
+                .andThreadPoolPropertiesDefaults(HystrixThreadPoolProperties.Setter()
+                        .withCoreSize(threadPoolConfig.getConcurrency()).withMaxQueueSize(threadPoolConfig.getMaxRequestQueueSize())
+                        .withQueueSizeRejectionThreshold(threadPoolConfig.getDynamicRequestQueueSize())
+                        .withMetricsRollingStatisticalWindowBuckets(metricsConfig.getStatsBucketSize())
+                        .withMetricsRollingStatisticalWindowInMilliseconds(metricsConfig.getStatsTimeInMillis()));
     }
 }
