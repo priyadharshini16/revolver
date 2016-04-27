@@ -124,14 +124,14 @@ function loadData() {
     });
 }
 
-function streamingData() {
-    var jsonStream = new EventSource('http://turbine.stg-mesos.phonepe.int/turbine.stream');
-    jsonStream.onmessage = function (e) {
-        //var message = JSON.parse(e.data);
-        // handle message
-        console.log("Data: " +e.data);
-    };
-}
+// function streamingData() {
+//     var jsonStream = new EventSource('http://turbine.stg-mesos.phonepe.int/turbine.stream');
+//     jsonStream.onmessage = function (e) {
+//         //var message = JSON.parse(e.data);
+//         // handle message
+//         console.log("Data: " +e.data);
+//     };
+// }
 
 $( document ).ready(function() {
     $('.dropdown-button').dropdown({
