@@ -20,12 +20,14 @@ package io.dropwizard.revolver.core.config;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * @author phaneesh
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
+@NoArgsConstructor
 public class AerospikeMailBoxConfig extends MailBoxConfig {
 
     private String hosts;
@@ -41,9 +43,9 @@ public class AerospikeMailBoxConfig extends MailBoxConfig {
     private int sleepBetweenRetries;
 
     @Builder
-    public AerospikeMailBoxConfig(final String type, final String hosts, final String namespace, final int maxConnectionsPerNode,
+    public AerospikeMailBoxConfig(final String hosts, final String namespace, final int maxConnectionsPerNode,
                                   final int timeout, final int retries, final int sleepBetweenRetries) {
-        super(type);
+        super("aerospike");
         this.hosts = hosts;
         this.namespace = namespace;
         this.maxConnectionsPerNode = maxConnectionsPerNode;

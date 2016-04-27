@@ -93,9 +93,7 @@ public class BaseRevolverTest {
         securedEndpoint.setPort(9933);
 
         revolverConfig = RevolverConfig.builder()
-                .mailBox(InMemoryMailBoxConfig.builder()
-                        .type("in_memory")
-                .build())
+                .mailBox(InMemoryMailBoxConfig.builder().build())
                 .serviceResolverConfig(ServiceResolverConfig.builder()
                     .namespace("test")
                     .useCurator(false)

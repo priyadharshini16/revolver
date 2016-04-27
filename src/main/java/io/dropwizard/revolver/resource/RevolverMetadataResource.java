@@ -38,7 +38,6 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,9 +60,9 @@ public class RevolverMetadataResource {
     @Path("/v1/metadata/status")
     @GET
     @Metered
-    @ApiOperation(value = "Get the status revolver api gateway")
+    @ApiOperation(value = "Get the status & metadata of revolver api gateway")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response status() {
+    public RevolverMetadataResponse status() {
         final RevolverMetadataResponse.RevolverMetadataResponseBuilder metadataResponse = RevolverMetadataResponse.builder();
         metadataResponse.clientId(config.getClientConfig().getClientName());
         final List<RevolverHttpServiceConfig> services = config.getServices().stream()
@@ -81,7 +80,16 @@ public class RevolverMetadataResource {
             }
             metadataResponse.service(serviceMetadataBuilder.build());
         });
-        return Response.ok().entity(metadataResponse.build()).build();
+        return metadataResponse.build();
+    }
+
+    @Path("/v1/metadata/config")
+    @GET
+    @Metered
+    @ApiOperation(value = "Get configuration of revolver api gateway")
+    @Produces(MediaType.APPLICATION_JSON)
+    public RevolverConfig config() {
+        return config;
     }
 
     private List<RevolverApiMetadata> apiMetadataList(RevolverHttpServiceConfig httpServiceConfig) {

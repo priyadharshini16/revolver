@@ -27,11 +27,10 @@ import lombok.NoArgsConstructor;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@NoArgsConstructor
 public class InMemoryMailBoxConfig extends MailBoxConfig {
 
     @Builder
-    public InMemoryMailBoxConfig(final String type) {
-        super(type);
+    public InMemoryMailBoxConfig() {
+        super("in_memory");
     }
 }
