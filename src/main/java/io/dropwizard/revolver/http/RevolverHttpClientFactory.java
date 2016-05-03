@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -77,7 +78,7 @@ public class RevolverHttpClientFactory {
                     break;
                 case "token":
                     val tokenAuthConfig = (TokenAuthConfig) serviceConfiguration.getAuth();
-                    if(Strings.isNullOrEmpty(tokenAuthConfig.getPrefix())) { //No prefix check
+                    if (Strings.isNullOrEmpty(tokenAuthConfig.getPrefix())) { //No prefix check
                         builder.authenticator((route, response) -> response.request().newBuilder()
                                 .addHeader(HttpHeaders.AUTHORIZATION, tokenAuthConfig.getToken())
                                 .build());
@@ -95,10 +96,8 @@ public class RevolverHttpClientFactory {
             final String keystorePath = serviceConfiguration.getKeyStorePath();
             final String keystorePassword = (serviceConfiguration.getKeystorePassword() == null) ? "" : serviceConfiguration.getKeystorePassword();
             ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.COMPATIBLE_TLS)
-                    .tlsVersions(TlsVersion.TLS_1_1)
-                    .cipherSuites(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                            CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256)
+                    .allEnabledCipherSuites()
+                    .allEnabledTlsVersions()
                     .build();
             builder.connectionSpecs(Collections.singletonList(spec));
             if (!StringUtils.isBlank(keystorePath)) {
@@ -113,6 +112,8 @@ public class RevolverHttpClientFactory {
             builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), serviceConfiguration.getConnectionKeepAliveInMillis(), TimeUnit.MILLISECONDS));
         }
         builder.connectTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
+        HostnameVerifier hostNameVerifier = (s, sslSession) -> true;
+        builder.hostnameVerifier(hostNameVerifier);
         return builder.build();
     }
 
@@ -132,24 +133,24 @@ public class RevolverHttpClientFactory {
 
     private static SSLContext getSSLContext() throws NoSuchAlgorithmException, KeyManagementException {
         final SSLContext sslContext = SSLContext.getInstance("TLS");
-        final TrustManager[] trustManagers = new TrustManager[]{new TrustEveryoneManager()};
+        final TrustManager[] trustManagers = new TrustManager[]{new X509TrustManager() {
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+
+            @Override
+            public void checkServerTrusted(final X509Certificate[] chain,
+                                           final String authType) throws CertificateException {
+            }
+
+            @Override
+            public void checkClientTrusted(final X509Certificate[] chain,
+                                           final String authType) throws CertificateException {
+            }
+        }};
         sslContext.init(null, trustManagers, null);
         return sslContext;
     }
-
-    static class TrustEveryoneManager implements X509TrustManager {
-        @Override
-        public void checkClientTrusted(final java.security.cert.X509Certificate[] chain, final String authType) throws CertificateException {
-        }
-
-        @Override
-        public void checkServerTrusted(final java.security.cert.X509Certificate[] chain, final String authType) throws CertificateException {
-        }
-
-        @Override
-        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-            return null;
-        }
-    }
-
 }
