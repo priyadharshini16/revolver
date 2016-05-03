@@ -181,6 +181,10 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     PersistenceProvider getPersistenceProvider(final T configuration, final Environment environment) {
         final RevolverConfig revolverConfig = getRevolverConfig(configuration);
+        //Default for avoiding no mailbox config NPE
+        if (revolverConfig.getMailBox() == null) {
+            return new InMemoryPersistenceProvider();
+        }
         switch (revolverConfig.getMailBox().getType()) {
             case "in_memory":
                 return new InMemoryPersistenceProvider();
