@@ -28,6 +28,8 @@ import java.util.List;
  */
 public interface PersistenceProvider {
 
+    boolean exists(final String requestId);
+
     void saveRequest(final String requestId, final String mailboxId, final RevolverCallbackRequest request);
 
     void setRequestState(final String requestId, RevolverRequestState state);

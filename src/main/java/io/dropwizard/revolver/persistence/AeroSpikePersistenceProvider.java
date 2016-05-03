@@ -92,6 +92,12 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     }
 
     @Override
+    public boolean exists(String requestId) {
+        final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
+        return AerospikeConnectionManager.getClient().exists(null, key);
+    }
+
+    @Override
     public void saveRequest(String requestId, String mailboxId, RevolverCallbackRequest request) {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
         try {

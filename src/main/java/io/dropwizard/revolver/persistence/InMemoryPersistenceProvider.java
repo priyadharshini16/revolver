@@ -43,6 +43,11 @@ public class InMemoryPersistenceProvider implements PersistenceProvider {
     private final MultivaluedMap<String, String> mailbox = new MultivaluedHashMap<>();
 
     @Override
+    public boolean exists(String requestId) {
+        return callbackRequests.containsKey(requestId);
+    }
+
+    @Override
     public void saveRequest(final String requestId, final String mailBoxId, final RevolverCallbackRequest request) {
         callbackRequests.put(requestId, request);
         if(!StringUtils.isBlank(mailBoxId))
