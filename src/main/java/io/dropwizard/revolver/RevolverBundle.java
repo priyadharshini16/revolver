@@ -197,14 +197,16 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     private void initializeRevolver(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
         final RevolverConfig revolverConfig = getRevolverConfig(configuration);
-        serviceNameResolver = revolverConfig.getServiceResolverConfig().isUseCurator() ? RevolverServiceResolver.usingCurator()
-                .curatorFramework(getCurator())
-                .objectMapper(environment.getObjectMapper())
-                .resolverConfig(revolverConfig.getServiceResolverConfig())
-                .build() : RevolverServiceResolver.builder()
-                .resolverConfig(revolverConfig.getServiceResolverConfig())
-                .objectMapper(environment.getObjectMapper())
-                .build();
+        if(revolverConfig.getServiceResolverConfig() != null) {
+            serviceNameResolver = revolverConfig.getServiceResolverConfig().isUseCurator() ? RevolverServiceResolver.usingCurator()
+                    .curatorFramework(getCurator())
+                    .objectMapper(environment.getObjectMapper())
+                    .resolverConfig(revolverConfig.getServiceResolverConfig())
+                    .build() : RevolverServiceResolver.builder()
+                    .resolverConfig(revolverConfig.getServiceResolverConfig())
+                    .objectMapper(environment.getObjectMapper())
+                    .build();
+        }
         for (final RevolverServiceConfig config : revolverConfig.getServices()) {
             final String type = config.getType();
             switch (type) {
