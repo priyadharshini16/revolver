@@ -206,6 +206,10 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
                     .resolverConfig(revolverConfig.getServiceResolverConfig())
                     .objectMapper(environment.getObjectMapper())
                     .build();
+        } else {
+            serviceNameResolver = RevolverServiceResolver.builder()
+                    .objectMapper(environment.getObjectMapper())
+                    .build();
         }
         for (final RevolverServiceConfig config : revolverConfig.getServices()) {
             final String type = config.getType();
