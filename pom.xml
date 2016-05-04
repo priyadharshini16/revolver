@@ -82,7 +82,7 @@
             <version>${dropwizard.version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
+         <dependency>
             <groupId>com.smoketurner</groupId>
             <artifactId>dropwizard-swagger</artifactId>
             <version>${dropwizard.swagger.version}</version>

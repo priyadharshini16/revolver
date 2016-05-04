@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.netflix.hystrix.contrib.codahalemetricspublisher.HystrixCodaHaleMetricsPublisher;
 import com.netflix.hystrix.contrib.metrics.eventstream.HystrixMetricsStreamServlet;
@@ -93,32 +94,39 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     @Override
     public void initialize(final Bootstrap<?> bootstrap) {
+        //Reset everything before configuration
+        HystrixPlugins.reset();
         registerTypes(bootstrap);
         configureXmlMapper();
         bootstrap.addBundle(new XmlBundle());
         bootstrap.addBundle(new MsgPackBundle());
         bootstrap.addBundle(new AssetsBundle("/revolver/dashboard/", "/revolver/dashboard/", "index.html"));
-        if (HystrixPlugins.getInstance().getMetricsPublisher() == null) {
-            val publisher = new HystrixCodaHaleMetricsPublisher(bootstrap.getMetricRegistry());
-            HystrixPlugins.getInstance().registerMetricsPublisher(publisher);
-        }
     }
 
     @Override
     public void run(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
         initializeRevolver(configuration, environment);
-        environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, getRevolverConfig(configuration).getHystrixStreamPath());
+        final RevolverConfig revolverConfig = getRevolverConfig(configuration);
+        if(Strings.isNullOrEmpty(revolverConfig.getHystrixStreamPath())) {
+            environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, "/hystrix.stream");
+        } else {
+            environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, revolverConfig.getHystrixStreamPath());
+        }
         environment.jersey().register(new RevolverExceptionMapper());
         final PersistenceProvider persistenceProvider = getPersistenceProvider(configuration, environment);
         final CallbackHandler callbackHandler = CallbackHandler.builder()
                 .persistenceProvider(persistenceProvider)
-                .revolverConfig(getRevolverConfig(configuration))
+                .revolverConfig(revolverConfig)
                 .build();
-        environment.jersey().register(new RevolverCallbackRequestFilter(getRevolverConfig(configuration)));
+        environment.jersey().register(new RevolverCallbackRequestFilter(revolverConfig));
         environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper, persistenceProvider));
         environment.jersey().register(new RevolverCallbackResource(persistenceProvider, callbackHandler));
         environment.jersey().register(new RevolverMailboxResource(persistenceProvider));
-        environment.jersey().register(new RevolverMetadataResource(getRevolverConfig(configuration)));
+        environment.jersey().register(new RevolverMetadataResource(revolverConfig));
+        //Add metrics publisher
+        final HystrixCodaHaleMetricsPublisher metricsPublisher =
+                new HystrixCodaHaleMetricsPublisher(environment.metrics());
+        HystrixPlugins.getInstance().registerMetricsPublisher(metricsPublisher);
     }
 
 
