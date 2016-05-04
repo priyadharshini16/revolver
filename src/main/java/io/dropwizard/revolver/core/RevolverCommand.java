@@ -74,7 +74,8 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
         final Stopwatch watch = Stopwatch.createStarted();
         String errorMessage = null;
         try {
-            return (ResponseType) new RevolverCommandHandler(RevolverCommandHelper.setter(this, request.getApi()), this.context, this, normalizedRequest).execute();
+            return (ResponseType) new RevolverCommandHandler(RevolverCommandHelper.setter(this, request.getApi()),
+                    this.context, this, normalizedRequest).execute();
         } catch (Throwable t) {
             errorMessage = t.getLocalizedMessage();
             throw new RevolverExecutionException(RevolverExecutionException.Type.SERVICE_ERROR, t);

@@ -32,6 +32,7 @@ import io.dropwizard.revolver.discovery.ServiceResolverConfig;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
 import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
+import io.dropwizard.revolver.http.config.RevolverHttpsServiceConfig;
 import io.dropwizard.revolver.persistence.InMemoryPersistenceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -148,10 +149,9 @@ public class BaseRevolverTest {
                                                 .build())
                                         .build()).build())
                         .build())
-                .service(RevolverHttpServiceConfig.builder()
+                .service(RevolverHttpsServiceConfig.builder()
                         .authEnabled(false)
                         .connectionPoolSize(1)
-                        .secured(true)
                         .enpoint(securedEndpoint)
                         .service("test_secured")
                         .type("https")

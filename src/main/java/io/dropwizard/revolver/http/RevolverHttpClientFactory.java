@@ -28,8 +28,11 @@ import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.*;
+import okhttp3.internal.tls.OkHostnameVerifier;
+import okhttp3.internal.tls.TrustRootIndex;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.net.SocketFactory;
 import javax.net.ssl.*;
 import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
@@ -93,17 +96,20 @@ public class RevolverHttpClientFactory {
             }
         }
         if (serviceConfiguration.isSecured()) {
-            final String keystorePath = serviceConfiguration.getKeyStorePath();
-            final String keystorePassword = (serviceConfiguration.getKeystorePassword() == null) ? "" : serviceConfiguration.getKeystorePassword();
-            ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.COMPATIBLE_TLS)
-                    .allEnabledCipherSuites()
+            final ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
                     .allEnabledTlsVersions()
+                    .allEnabledCipherSuites()
                     .build();
             builder.connectionSpecs(Collections.singletonList(spec));
+            final String keystorePath = serviceConfiguration.getKeyStorePath();
+            final String keystorePassword = (serviceConfiguration.getKeystorePassword() == null) ? "" : serviceConfiguration.getKeystorePassword();
             if (!StringUtils.isBlank(keystorePath)) {
-                builder.socketFactory(getSSLContext(keystorePath, keystorePassword).getSocketFactory());
+                SSLSocketFactory socketFactory = getSSLContext(keystorePath, keystorePassword).getSocketFactory();
+                builder.sslSocketFactory(socketFactory);
+                builder.hostnameVerifier(OkHostnameVerifier.INSTANCE);
             } else {
-                builder.socketFactory(getSSLContext().getSocketFactory());
+                HostnameVerifier hostNameVerifier = (s, sslSession) -> true;
+                builder.hostnameVerifier(hostNameVerifier);
             }
         }
         if (serviceConfiguration.getConnectionKeepAliveInMillis() <= 0) {
@@ -112,8 +118,6 @@ public class RevolverHttpClientFactory {
             builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), serviceConfiguration.getConnectionKeepAliveInMillis(), TimeUnit.MILLISECONDS));
         }
         builder.connectTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
-        HostnameVerifier hostNameVerifier = (s, sslSession) -> true;
-        builder.hostnameVerifier(hostNameVerifier);
         return builder.build();
     }
 
@@ -131,26 +135,4 @@ public class RevolverHttpClientFactory {
         return sslContext;
     }
 
-    private static SSLContext getSSLContext() throws NoSuchAlgorithmException, KeyManagementException {
-        final SSLContext sslContext = SSLContext.getInstance("TLS");
-        final TrustManager[] trustManagers = new TrustManager[]{new X509TrustManager() {
-
-            @Override
-            public X509Certificate[] getAcceptedIssuers() {
-                return null;
-            }
-
-            @Override
-            public void checkServerTrusted(final X509Certificate[] chain,
-                                           final String authType) throws CertificateException {
-            }
-
-            @Override
-            public void checkClientTrusted(final X509Certificate[] chain,
-                                           final String authType) throws CertificateException {
-            }
-        }};
-        sslContext.init(null, trustManagers, null);
-        return sslContext;
-    }
 }

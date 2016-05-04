@@ -48,6 +48,7 @@ import io.dropwizard.revolver.http.auth.BasicAuthConfig;
 import io.dropwizard.revolver.http.auth.TokenAuthConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
+import io.dropwizard.revolver.http.config.RevolverHttpsServiceConfig;
 import io.dropwizard.revolver.http.model.ApiPathMap;
 import io.dropwizard.revolver.persistence.AeroSpikePersistenceProvider;
 import io.dropwizard.revolver.persistence.InMemoryPersistenceProvider;
@@ -131,7 +132,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     private void registerTypes(final Bootstrap<?> bootstrap) {
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RevolverHttpServiceConfig.class, "http"));
-        bootstrap.getObjectMapper().registerSubtypes(new NamedType(RevolverHttpServiceConfig.class, "https"));
+        bootstrap.getObjectMapper().registerSubtypes(new NamedType(RevolverHttpsServiceConfig.class, "https"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(BasicAuthConfig.class, "basic"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(TokenAuthConfig.class, "token"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(SimpleEndpointSpec.class, "simple"));
@@ -226,13 +227,43 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
             final String type = config.getType();
             switch (type) {
                 case "http":
-                case "https":
                     final RevolverHttpServiceConfig httpConfig = (RevolverHttpServiceConfig) config;
                     try {
+                        httpConfig.setSecured(false);
                         httpCommands.put(config.getService(), RevolverHttpCommand.builder()
                                 .clientConfiguration(revolverConfig.getClientConfig())
                                 .runtimeConfig(revolverConfig.getGlobal())
                                 .serviceConfiguration(httpConfig).apiConfigurations(generateApiConfigMap(httpConfig))
+                                .serviceResolver(serviceNameResolver)
+                                .traceCollector(trace -> {
+                                    //TODO: Put in a publisher if required
+                                }).build());
+                    } catch (ExecutionException e) {
+                        log.error("Error creating http command: {}", config.getService(), e);
+                    }
+                    break;
+                case "https":
+                    final RevolverHttpsServiceConfig httpsConfig = (RevolverHttpsServiceConfig) config;
+                    final RevolverHttpServiceConfig revolverHttpServiceConfig = RevolverHttpServiceConfig.builder()
+                            .apis(httpsConfig.getApis())
+                            .auth(httpsConfig.getAuth())
+                            .authEnabled(httpsConfig.isAuthEnabled())
+                            .compression(httpsConfig.isCompression())
+                            .connectionKeepAliveInMillis(httpsConfig.getConnectionKeepAliveInMillis())
+                            .connectionPoolSize(httpsConfig.getConnectionPoolSize())
+                            .enpoint(httpsConfig.getEndpoint())
+                            .keystorePassword(httpsConfig.getKeystorePassword())
+                            .keyStorePath(httpsConfig.getKeyStorePath())
+                            .secured(true)
+                            .service(httpsConfig.getService())
+                            .trackingHeaders(httpsConfig.isTrackingHeaders())
+                            .type(httpsConfig.getType())
+                            .build();
+                    try {
+                        httpCommands.put(config.getService(), RevolverHttpCommand.builder()
+                                .clientConfiguration(revolverConfig.getClientConfig())
+                                .runtimeConfig(revolverConfig.getGlobal())
+                                .serviceConfiguration(revolverHttpServiceConfig).apiConfigurations(generateApiConfigMap(revolverHttpServiceConfig))
                                 .serviceResolver(serviceNameResolver)
                                 .traceCollector(trace -> {
                                     //TODO: Put in a publisher if required

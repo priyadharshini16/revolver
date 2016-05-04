@@ -76,10 +76,12 @@ public class RevolverCommandHelper {
             circuitBreakerConfig = new CircuitBreakerConfig();
         }
         ThreadPoolConfig threadPoolConfig;
-        if(null != runtimeConfig) {
-            threadPoolConfig = runtimeConfig.getThreadPool();
-        } else if (null != serviceConfiguration.getRuntime() && null != serviceConfiguration.getRuntime().getThreadPool()){
+        if(null != config.getRuntime() && null != config.getRuntime().getThreadPool()) {
+            threadPoolConfig = config.getRuntime().getThreadPool();
+        } else if (null != serviceConfiguration.getRuntime() && null != serviceConfiguration.getRuntime().getThreadPool()) {
             threadPoolConfig = serviceConfiguration.getRuntime().getThreadPool();
+        } else if(null != runtimeConfig) {
+            threadPoolConfig = runtimeConfig.getThreadPool();
         } else {
             threadPoolConfig = new ThreadPoolConfig();
         }
