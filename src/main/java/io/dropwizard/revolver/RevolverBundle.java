@@ -105,6 +105,9 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     @Override
     public void run(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
+        //Add metrics publisher
+        final HystrixCodaHaleMetricsPublisher metricsPublisher = new HystrixCodaHaleMetricsPublisher(environment.metrics());
+        HystrixPlugins.getInstance().registerMetricsPublisher(metricsPublisher);
         initializeRevolver(configuration, environment);
         final RevolverConfig revolverConfig = getRevolverConfig(configuration);
         if(Strings.isNullOrEmpty(revolverConfig.getHystrixStreamPath())) {
@@ -123,10 +126,6 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         environment.jersey().register(new RevolverCallbackResource(persistenceProvider, callbackHandler));
         environment.jersey().register(new RevolverMailboxResource(persistenceProvider));
         environment.jersey().register(new RevolverMetadataResource(revolverConfig));
-        //Add metrics publisher
-        final HystrixCodaHaleMetricsPublisher metricsPublisher =
-                new HystrixCodaHaleMetricsPublisher(environment.metrics());
-        HystrixPlugins.getInstance().registerMetricsPublisher(metricsPublisher);
     }
 
 

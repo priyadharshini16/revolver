@@ -17,6 +17,7 @@
 
 package io.dropwizard.revolver;
 
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.dropwizard.Configuration;
@@ -24,6 +25,7 @@ import io.dropwizard.jersey.DropwizardResourceConfig;
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.jetty.MutableServletContextHandler;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
+import io.dropwizard.metrics.MetricsFactory;
 import io.dropwizard.revolver.core.config.*;
 import io.dropwizard.revolver.core.config.hystrix.ThreadPoolConfig;
 import io.dropwizard.revolver.discovery.ServiceResolverConfig;
@@ -60,6 +62,10 @@ public class BaseRevolverTest {
     protected final Bootstrap<?> bootstrap = mock(Bootstrap.class);
     protected final Configuration configuration = mock(Configuration.class);
 
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    private MetricRegistry metricRegistry = new MetricRegistry();
+
     protected static final InMemoryPersistenceProvider inMemoryPersistenceProvider = new InMemoryPersistenceProvider();
 
     protected final RevolverBundle<Configuration> bundle = new RevolverBundle<Configuration>() {
@@ -80,8 +86,9 @@ public class BaseRevolverTest {
         when(environment.jersey()).thenReturn(jerseyEnvironment);
         when(environment.lifecycle()).thenReturn(lifecycleEnvironment);
         when(environment.healthChecks()).thenReturn(healthChecks);
-        when(environment.getObjectMapper()).thenReturn(new ObjectMapper());
-        when(bootstrap.getObjectMapper()).thenReturn(new ObjectMapper());
+        when(environment.getObjectMapper()).thenReturn(mapper);
+        when(bootstrap.getObjectMapper()).thenReturn(mapper);
+        when(environment.metrics()).thenReturn(metricRegistry);
         when(environment.getApplicationContext()).thenReturn(new MutableServletContextHandler());
 
         val simpleEndpoint = new SimpleEndpointSpec();
