@@ -42,6 +42,7 @@ import io.dropwizard.revolver.discovery.RevolverServiceResolver;
 import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
 import io.dropwizard.revolver.exception.RevolverExceptionMapper;
+import io.dropwizard.revolver.exception.TimeoutExceptionMapper;
 import io.dropwizard.revolver.handler.RevolverCallbackRequestFilter;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.auth.BasicAuthConfig;
@@ -117,6 +118,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
             environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, revolverConfig.getHystrixStreamPath());
         }
         environment.jersey().register(new RevolverExceptionMapper());
+        environment.jersey().register(new TimeoutExceptionMapper());
         final PersistenceProvider persistenceProvider = getPersistenceProvider(configuration, environment);
         final CallbackHandler callbackHandler = CallbackHandler.builder()
                 .persistenceProvider(persistenceProvider)
