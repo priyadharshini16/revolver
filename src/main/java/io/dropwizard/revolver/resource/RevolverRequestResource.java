@@ -49,6 +49,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @author phaneesh
@@ -176,7 +177,7 @@ public class RevolverRequestResource {
 
     private Response executeInline(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method,
                                    final String path, final HttpHeaders headers,
-                                   final UriInfo uriInfo, final byte[] body) throws IOException {
+                                   final UriInfo uriInfo, final byte[] body) throws IOException, TimeoutException {
         cleanHeaders(headers.getRequestHeaders());
         val httpCommand = RevolverBundle.getHttpCommand(service);
         val response = httpCommand.execute(
