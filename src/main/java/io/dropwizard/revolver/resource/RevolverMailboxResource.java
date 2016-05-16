@@ -18,6 +18,7 @@
 package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
+import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
@@ -35,6 +36,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.inject.Singleton;
 import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Collections;
 import java.util.List;
@@ -143,7 +145,8 @@ public class RevolverMailboxResource {
     @Path("/v1/response/{requestId}")
     @GET
     @Metered
-    @ApiOperation(value = "Get the request in the mailbox")
+    @ApiOperation(value = "Get the response for a request in the mailbox")
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     public RevolverCallbackResponse response(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverCallbackResponse callbackResponse = persistenceProvider.response(requestId);
@@ -193,6 +196,7 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get all the responses in the mailbox")
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     public List<RevolverCallbackResponse> responses(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
         try {
             List<RevolverCallbackResponse> callbackResponses = persistenceProvider.responses(mailboxId);
@@ -213,5 +217,4 @@ public class RevolverMailboxResource {
 
         }
     }
-
 }
