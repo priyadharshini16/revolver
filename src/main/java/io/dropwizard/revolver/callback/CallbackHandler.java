@@ -58,6 +58,7 @@ import java.security.cert.CertificateException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @author phaneesh
@@ -173,6 +174,9 @@ public class CallbackHandler {
                 log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
                 return false;
             } catch (ExecutionException e) {
+                log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
+                return false;
+            } catch (TimeoutException e) {
                 log.error("Error making callback for: {} for request: {}", uri.toString(), requestId);
                 return false;
             }
