@@ -27,6 +27,8 @@ import lombok.val;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.util.concurrent.TimeoutException;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.Assert.assertEquals;
 
@@ -39,7 +41,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     public WireMockRule wireMockRule = new WireMockRule(9999, 9933);
 
     @Test
-    public void testSimpleGetHttpsCommand() {
+    public void testSimpleGetHttpsCommand() throws TimeoutException {
         stubFor(get(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -56,7 +58,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleGetHttpCommandWithWrongPath() {
+    public void testSimpleGetHttpCommandWithWrongPath() throws TimeoutException {
         stubFor(get(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -73,7 +75,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleGetHttpCommandWithMultiplePathSegment() {
+    public void testSimpleGetHttpCommandWithMultiplePathSegment() throws TimeoutException {
         stubFor(get(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -90,7 +92,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleGetHttpCommandWithMultiplePathSegmentWithWrongPath() {
+    public void testSimpleGetHttpCommandWithMultiplePathSegmentWithWrongPath() throws TimeoutException {
         stubFor(get(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -107,7 +109,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePostHttpCommand() {
+    public void testSimplePostHttpCommand() throws TimeoutException {
         stubFor(post(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -124,7 +126,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePostHttpCommandWithWithWrongPath() {
+    public void testSimplePostHttpCommandWithWithWrongPath() throws TimeoutException {
         stubFor(post(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -141,7 +143,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePostHttpCommandWithMultiplePathSegment() {
+    public void testSimplePostHttpCommandWithMultiplePathSegment() throws TimeoutException {
         stubFor(post(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -158,7 +160,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePostHttpCommandWithMultiplePathSegmentWithWrongPath() {
+    public void testSimplePostHttpCommandWithMultiplePathSegmentWithWrongPath() throws TimeoutException {
         stubFor(post(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -175,7 +177,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePutHttpCommand() {
+    public void testSimplePutHttpCommand() throws TimeoutException {
         stubFor(put(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -192,7 +194,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePutHttpCommandWithWrongPath() {
+    public void testSimplePutHttpCommandWithWrongPath() throws TimeoutException {
         stubFor(put(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -209,7 +211,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePutHttpCommandWithMultiplePathSegment() {
+    public void testSimplePutHttpCommandWithMultiplePathSegment() throws TimeoutException {
         stubFor(put(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -226,7 +228,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePutHttpCommandWithMultiplePathSegmentWithWrongPath() {
+    public void testSimplePutHttpCommandWithMultiplePathSegmentWithWrongPath() throws TimeoutException {
         stubFor(put(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -244,7 +246,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
 
 
     @Test
-    public void testSimpleDeleteHttpCommand() {
+    public void testSimpleDeleteHttpCommand() throws TimeoutException {
         stubFor(delete(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -261,7 +263,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleDeleteHttpCommandWithWrongPath() {
+    public void testSimpleDeleteHttpCommandWithWrongPath() throws TimeoutException {
         stubFor(delete(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -278,7 +280,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleDeleteHttpCommandWithMultiplePathSegment() {
+    public void testSimpleDeleteHttpCommandWithMultiplePathSegment() throws TimeoutException {
         stubFor(delete(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -295,7 +297,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleDeleteHttpCommandWithMultiplePathSegmentWithWrongPath() {
+    public void testSimpleDeleteHttpCommandWithMultiplePathSegmentWithWrongPath() throws TimeoutException {
         stubFor(delete(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -312,7 +314,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleHeadHttpCommand() {
+    public void testSimpleHeadHttpCommand() throws TimeoutException {
         stubFor(head(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -329,7 +331,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleHeadHttpCommandWithWrongPath() {
+    public void testSimpleHeadHttpCommandWithWrongPath() throws TimeoutException {
         stubFor(head(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -346,7 +348,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleHeadHttpCommandWithMultiplePathSegment() {
+    public void testSimpleHeadHttpCommandWithMultiplePathSegment() throws TimeoutException {
         stubFor(head(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -363,7 +365,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleHeadHttpCommandWithMultiplePathSegmentWithWrongPath() {
+    public void testSimpleHeadHttpCommandWithMultiplePathSegmentWithWrongPath() throws TimeoutException {
         stubFor(head(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -380,7 +382,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePatchHttpCommand() {
+    public void testSimplePatchHttpCommand() throws TimeoutException {
         stubFor(patch(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -397,7 +399,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePatchHttpCommandWithWrongPath() {
+    public void testSimplePatchHttpCommandWithWrongPath() throws TimeoutException {
         stubFor(patch(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -414,7 +416,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePatchHttpCommandWithMultiplePathSegment() {
+    public void testSimplePatchHttpCommandWithMultiplePathSegment() throws TimeoutException {
         stubFor(patch(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -431,7 +433,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimplePatchHttpCommandWithMultiplePathSegmentWithWrongPath() {
+    public void testSimplePatchHttpCommandWithMultiplePathSegmentWithWrongPath() throws TimeoutException {
         stubFor(patch(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -448,7 +450,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleOptionsHttpCommand() {
+    public void testSimpleOptionsHttpCommand() throws TimeoutException {
         stubFor(options(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -465,7 +467,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleOptionsHttpCommandWithWrongPath() {
+    public void testSimpleOptionsHttpCommandWithWrongPath() throws TimeoutException {
         stubFor(options(urlEqualTo("/v1/test"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -482,7 +484,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleOptionHttpCommandWithMultiplePathSegment() {
+    public void testSimpleOptionHttpCommandWithMultiplePathSegment() throws TimeoutException {
         stubFor(options(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -499,7 +501,7 @@ public class RevolverSimpleHttpsCommandTest extends BaseRevolverTest {
     }
 
     @Test
-    public void testSimpleOptionsHttpCommandWithMultiplePathSegmentWithWrongPath() {
+    public void testSimpleOptionsHttpCommandWithMultiplePathSegmentWithWrongPath() throws TimeoutException {
         stubFor(patch(urlEqualTo("/v1/test/multi"))
                 .willReturn(aResponse()
                         .withStatus(200)
