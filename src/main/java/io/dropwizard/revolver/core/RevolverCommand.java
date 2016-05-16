@@ -31,12 +31,15 @@ import io.dropwizard.revolver.core.tracing.TraceCollector;
 import io.dropwizard.revolver.core.tracing.TraceInfo;
 import io.dropwizard.revolver.core.util.RevolverCommandHelper;
 import io.dropwizard.revolver.core.util.RevolverExceptionHelper;
+import lombok.val;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.MDC;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @author phaneesh
@@ -63,7 +66,7 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
     }
 
     @SuppressWarnings("unchecked")
-    public ResponseType execute(final RequestType request) throws RevolverExecutionException {
+    public ResponseType execute(final RequestType request) throws RevolverExecutionException, TimeoutException {
         final CommandHandlerConfigType apiConfiguration = this.apiConfigurations.get(request.getApi());
         if (null == apiConfiguration) {
             throw new RevolverExecutionException(RevolverExecutionException.Type.BAD_REQUEST, "No api spec defined for key: " + request.getApi());
@@ -77,8 +80,12 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
             return (ResponseType) new RevolverCommandHandler(RevolverCommandHelper.setter(this, request.getApi()),
                     this.context, this, normalizedRequest).execute();
         } catch (Throwable t) {
-            errorMessage = t.getLocalizedMessage();
-            throw new RevolverExecutionException(RevolverExecutionException.Type.SERVICE_ERROR, t);
+            val rootCause = ExceptionUtils.getRootCause(t);
+            if( rootCause instanceof TimeoutException) {
+                throw (TimeoutException)rootCause;
+            }
+            errorMessage = rootCause.getLocalizedMessage();
+            throw new RevolverExecutionException(RevolverExecutionException.Type.SERVICE_ERROR, rootCause);
         } finally {
             publishTrace(Trace.builder()
                     .caller(this.clientConfiguration.getClientName())
