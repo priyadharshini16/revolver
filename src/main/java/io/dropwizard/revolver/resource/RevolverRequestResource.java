@@ -288,25 +288,43 @@ public class RevolverRequestResource {
                         .body(body)
                         .build()
         );
-        response.thenAcceptAsync( result -> {
-            try {
-                if(isDownstreamAsync) {
-                    if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode() || result.getStatusCode() == Response.Status.OK.getStatusCode()) {
-                        persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
-                    } else {
-                        persistenceProvider.setRequestState(requestId, RevolverRequestState.ERROR);
-                    }
-                } else {
-                    persistenceProvider.saveResponse(requestId, RevolverCallbackResponse.builder()
-                            .body(result.getBody())
-                            .headers(result.getHeaders())
-                            .statusCode(result.getStatusCode())
-                            .build());
-                }
-            } catch (Exception e) {
-                log.error("Error saving response:", e);
+        //Async Downstream send accept on request path (Still circuit breaker will kick in. Keep circuit breaker aggressive)
+        if(isDownstreamAsync) {
+            val result = response.get();
+            if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode()) {
+                persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
+                return transform(headers, result);
+            } else {
+                persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
+                saveResponse(requestId, result);
+                return transform(headers, result);
             }
-        });
-        return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build()).build();
+        } else {
+            response.thenAcceptAsync( result -> {
+                if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode()) {
+                    persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
+                } else if(result.getStatusCode() == Response.Status.OK.getStatusCode()) {
+                    persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
+                    saveResponse(requestId, result);
+                } else {
+                    persistenceProvider.setRequestState(requestId, RevolverRequestState.ERROR);
+                    saveResponse(requestId, result);
+                }
+            });
+            return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build()).build();
+        }
+    }
+
+    private void saveResponse(String requestId, RevolverHttpResponse result) {
+        try {
+            persistenceProvider.saveResponse(requestId, RevolverCallbackResponse.builder()
+                    .body(result.getBody())
+                    .headers(result.getHeaders())
+                    .statusCode(result.getStatusCode())
+                    .build());
+        } catch (Exception e) {
+            log.error("Error saving response!", e );
+        }
+
     }
 }
