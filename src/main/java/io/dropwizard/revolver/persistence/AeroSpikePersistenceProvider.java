@@ -103,12 +103,12 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
         try {
             final Bin service = new Bin(BinNames.SERVICE, request.getService());
             final Bin api = new Bin(BinNames.API, request.getApi());
-            final Bin mode = new Bin(BinNames.MODE, request.getMode());
-            final Bin method = new Bin(BinNames.METHOD, request.getMethod());
+            final Bin mode = new Bin(BinNames.MODE, request.getMode().toUpperCase());
+            final Bin method = new Bin(BinNames.METHOD, request.getMethod().toUpperCase());
             final Bin path = new Bin(BinNames.PATH, request.getPath());
             final Bin mailBoxId = new Bin(BinNames.MAILBOX_ID, mailboxId == null ? "NONE" : mailboxId);
             final Bin queryParams = new Bin(BinNames.QUERY_PARAMS, objectMapper.writeValueAsString(request.getQueryParams()));
-            final Bin callbackUri = new Bin(BinNames.CALLBACK_URI, request.getCallbackUri());
+            final Bin callbackUri = new Bin(BinNames.CALLBACK_URI, request.getCallbackUri() != null ? request.getCallbackUri().toUpperCase() : null);
             final Bin requestHeaders = new Bin(BinNames.REQUEST_HEADERS, objectMapper.writeValueAsString(request.getHeaders()));
             final Bin requestBody = new Bin(BinNames.REQUEST_BODY, request.getBody());
             final Bin requestTime = new Bin(BinNames.REQUEST_TIME, Instant.now().toEpochMilli());
