@@ -264,6 +264,9 @@ public class RevolverRequestResource {
         persistenceProvider.saveRequest(requestId, mailBoxId,
                 RevolverCallbackRequest.builder()
                         .api(api)
+                        .mode(headers.getRequestHeaders().getFirst(RevolversHttpHeaders.CALL_MODE_HEADER))
+                        .callbackUri(headers.getRequestHeaders().getFirst(RevolversHttpHeaders.CALLBACK_URI_HEADER))
+                        .method(headers.getRequestHeaders().getFirst(RevolversHttpHeaders.CALLBACK_METHOD_HEADER))
                         .service(service)
                         .path(path)
                         .headers(headers.getRequestHeaders())
