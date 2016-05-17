@@ -161,7 +161,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
         if(record == null) {
             return RevolverRequestState.UNKNOWN;
         }
-        return RevolverRequestState.valueOf(record.getString("state"));
+        return RevolverRequestState.valueOf(record.getString(BinNames.STATE));
     }
 
     @Override
