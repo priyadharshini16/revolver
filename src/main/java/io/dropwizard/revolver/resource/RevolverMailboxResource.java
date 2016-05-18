@@ -18,6 +18,7 @@
 package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
+import com.google.common.base.Strings;
 import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
@@ -32,6 +33,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.inject.Singleton;
@@ -89,7 +91,7 @@ public class RevolverMailboxResource {
     @Path("/v1/request/ack/{requestId}")
     @POST
     @Metered
-    @ApiOperation(value = "Get the status of the request in the mailbox")
+    @ApiOperation(value = "Send ack for a request so that the mailbox message can be marked as read")
     public Response ack(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
@@ -147,7 +149,7 @@ public class RevolverMailboxResource {
     @Metered
     @ApiOperation(value = "Get the response for a request in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
-    public RevolverCallbackResponse response(@PathParam("requestId") final String requestId) throws RevolverException {
+    public Response response(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverCallbackResponse callbackResponse = persistenceProvider.response(requestId);
             if(callbackResponse == null) {
@@ -157,7 +159,10 @@ public class RevolverMailboxResource {
                         .errorCode("R002")
                         .build();
             }
-            return callbackResponse;
+            val response = Response.status(callbackResponse.getStatusCode())
+                    .entity(callbackResponse.getBody());
+            callbackResponse.getHeaders().forEach(response::header);
+            return response.build();
         } catch (Exception e) {
             log.error("Error getting response", e);
             throw RevolverException.builder()
@@ -199,6 +204,13 @@ public class RevolverMailboxResource {
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     public List<RevolverCallbackResponse> responses(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
         try {
+            if(Strings.isNullOrEmpty(mailboxId)) {
+                throw RevolverException.builder()
+                        .status(Response.Status.BAD_REQUEST.getStatusCode())
+                        .message("Invalid Mailbox Id")
+                        .errorCode("R003")
+                        .build();
+            }
             List<RevolverCallbackResponse> callbackResponses = persistenceProvider.responses(mailboxId);
             if(callbackResponses == null) {
                 throw RevolverException.builder()
