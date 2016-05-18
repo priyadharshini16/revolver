@@ -15,10 +15,7 @@
  */
 package io.dropwizard.revolver.base.core;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 import java.util.Map;
@@ -30,6 +27,7 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@ToString(exclude = "body")
 public class RevolverCallbackResponse {
 
     private Map<String, List<String>> headers;

@@ -18,10 +18,7 @@
 package io.dropwizard.revolver.base.core;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.ws.rs.core.MultivaluedMap;
 import java.util.List;
@@ -34,6 +31,7 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@ToString (exclude = "body")
 public class RevolverCallbackRequest {
 
     private String service;

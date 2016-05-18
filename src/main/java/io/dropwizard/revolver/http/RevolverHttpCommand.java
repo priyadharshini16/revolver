@@ -250,7 +250,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
 
     private HttpUrl generateURI(final RevolverHttpRequest request, final RevolverHttpApiConfig apiConfiguration, final Endpoint endpoint) {
         val builder = new HttpUrl.Builder();
-        getQueryParams(request, builder);
+        addQueryParams(request, builder);
         if (getServiceConfiguration().isSecured())
             builder.scheme("https");
         else
@@ -292,7 +292,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
         return uri.charAt(0) == '/' ? uri : "/" + uri;
     }
 
-    private void getQueryParams(final RevolverHttpRequest request, final HttpUrl.Builder builder) {
+    private void addQueryParams(final RevolverHttpRequest request, final HttpUrl.Builder builder) {
         if (null != request.getQueryParams()) {
             request.getQueryParams().forEach((key, values) -> values.forEach(value -> builder.addQueryParameter(key, value)));
         }

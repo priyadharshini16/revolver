@@ -152,7 +152,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         xmlObjectMapper.configure(ToXmlGenerator.Feature.WRITE_XML_1_1, true);
     }
 
-    private Map<String, RevolverHttpApiConfig> generateApiConfigMap(final RevolverHttpServiceConfig serviceConfiguration) {
+    private static Map<String, RevolverHttpApiConfig> generateApiConfigMap(final RevolverHttpServiceConfig serviceConfiguration) {
         serviceConfiguration.getApis().forEach(apiConfig -> serviceToPathMap.add(serviceConfiguration.getService(),
                 ApiPathMap.builder()
                         .api(apiConfig)
@@ -162,7 +162,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         return configMapBuilder.build();
     }
 
-    private String generatePathExpression(final String path) {
+    private static String generatePathExpression(final String path) {
         return path.replaceAll("\\{(([^/])+\\})", "(([^/])+)");
     }
 
@@ -229,56 +229,68 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
             final String type = config.getType();
             switch (type) {
                 case "http":
-                    final RevolverHttpServiceConfig httpConfig = (RevolverHttpServiceConfig) config;
-                    try {
-                        httpConfig.setSecured(false);
-                        httpCommands.put(config.getService(), RevolverHttpCommand.builder()
-                                .clientConfiguration(revolverConfig.getClientConfig())
-                                .runtimeConfig(revolverConfig.getGlobal())
-                                .serviceConfiguration(httpConfig).apiConfigurations(generateApiConfigMap(httpConfig))
-                                .serviceResolver(serviceNameResolver)
-                                .traceCollector(trace -> {
-                                    //TODO: Put in a publisher if required
-                                }).build());
-                    } catch (ExecutionException e) {
-                        log.error("Error creating http command: {}", config.getService(), e);
-                    }
+                    registerHttpCommand(revolverConfig, config);
                     break;
                 case "https":
-                    final RevolverHttpsServiceConfig httpsConfig = (RevolverHttpsServiceConfig) config;
-                    final RevolverHttpServiceConfig revolverHttpServiceConfig = RevolverHttpServiceConfig.builder()
-                            .apis(httpsConfig.getApis())
-                            .auth(httpsConfig.getAuth())
-                            .authEnabled(httpsConfig.isAuthEnabled())
-                            .compression(httpsConfig.isCompression())
-                            .connectionKeepAliveInMillis(httpsConfig.getConnectionKeepAliveInMillis())
-                            .connectionPoolSize(httpsConfig.getConnectionPoolSize())
-                            .enpoint(httpsConfig.getEndpoint())
-                            .keystorePassword(httpsConfig.getKeystorePassword())
-                            .keyStorePath(httpsConfig.getKeyStorePath())
-                            .secured(true)
-                            .service(httpsConfig.getService())
-                            .trackingHeaders(httpsConfig.isTrackingHeaders())
-                            .type(httpsConfig.getType())
-                            .build();
-                    try {
-                        httpCommands.put(config.getService(), RevolverHttpCommand.builder()
-                                .clientConfiguration(revolverConfig.getClientConfig())
-                                .runtimeConfig(revolverConfig.getGlobal())
-                                .serviceConfiguration(revolverHttpServiceConfig).apiConfigurations(generateApiConfigMap(revolverHttpServiceConfig))
-                                .serviceResolver(serviceNameResolver)
-                                .traceCollector(trace -> {
-                                    //TODO: Put in a publisher if required
-                                }).build());
-                    } catch (ExecutionException e) {
-                        log.error("Error creating http command: {}", config.getService(), e);
-                    }
+                    registerHttpsCommand(revolverConfig, config);
                     break;
                 default:
                     log.warn("Unsupported Service type: " + type);
 
             }
         }
+    }
+
+    private static void registerHttpsCommand(RevolverConfig revolverConfig, RevolverServiceConfig config) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, KeyManagementException, UnrecoverableKeyException {
+        final RevolverHttpsServiceConfig httpsConfig = (RevolverHttpsServiceConfig) config;
+        final RevolverHttpServiceConfig revolverHttpServiceConfig = RevolverHttpServiceConfig.builder()
+                .apis(httpsConfig.getApis())
+                .auth(httpsConfig.getAuth())
+                .authEnabled(httpsConfig.isAuthEnabled())
+                .compression(httpsConfig.isCompression())
+                .connectionKeepAliveInMillis(httpsConfig.getConnectionKeepAliveInMillis())
+                .connectionPoolSize(httpsConfig.getConnectionPoolSize())
+                .enpoint(httpsConfig.getEndpoint())
+                .keystorePassword(httpsConfig.getKeystorePassword())
+                .keyStorePath(httpsConfig.getKeyStorePath())
+                .secured(true)
+                .service(httpsConfig.getService())
+                .trackingHeaders(httpsConfig.isTrackingHeaders())
+                .type(httpsConfig.getType())
+                .build();
+        try {
+            httpCommands.put(config.getService(), RevolverHttpCommand.builder()
+                    .clientConfiguration(revolverConfig.getClientConfig())
+                    .runtimeConfig(revolverConfig.getGlobal())
+                    .serviceConfiguration(revolverHttpServiceConfig).apiConfigurations(generateApiConfigMap(revolverHttpServiceConfig))
+                    .serviceResolver(serviceNameResolver)
+                    .traceCollector(trace -> {
+                        //TODO: Put in a publisher if required
+                    }).build());
+        } catch (ExecutionException e) {
+            log.error("Error creating http command: {}", config.getService(), e);
+        }
+    }
+
+    private static void registerHttpCommand(RevolverConfig revolverConfig, RevolverServiceConfig config) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, KeyManagementException, UnrecoverableKeyException {
+        final RevolverHttpServiceConfig httpConfig = (RevolverHttpServiceConfig) config;
+        try {
+            httpConfig.setSecured(false);
+            httpCommands.put(config.getService(), RevolverHttpCommand.builder()
+                    .clientConfiguration(revolverConfig.getClientConfig())
+                    .runtimeConfig(revolverConfig.getGlobal())
+                    .serviceConfiguration(httpConfig).apiConfigurations(generateApiConfigMap(httpConfig))
+                    .serviceResolver(serviceNameResolver)
+                    .traceCollector(trace -> {
+                        //TODO: Put in a publisher if required
+                    }).build());
+        } catch (ExecutionException e) {
+            log.error("Error creating http command: {}", config.getService(), e);
+        }
+    }
+
+    public static void addHttpCommand(String service, RevolverHttpCommand httpCommand) {
+        httpCommands.put(service, httpCommand);
     }
 
 }

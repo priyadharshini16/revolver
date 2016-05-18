@@ -19,19 +19,21 @@ package io.dropwizard.revolver.core.config;
 
 import com.google.common.collect.Lists;
 import io.dropwizard.revolver.discovery.ServiceResolverConfig;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.Singular;
 import org.hibernate.validator.constraints.NotBlank;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
 /**
  * @author phaneesh
  */
-@Builder
-@AllArgsConstructor
 public class RevolverConfig {
 
     @NotNull
@@ -74,12 +76,27 @@ public class RevolverConfig {
 
     @Getter
     @Setter
+    @Max(30000)
     private int callbackTimeout = 3000;
+
+    @Builder
+    public RevolverConfig(ClientConfig clientConfig, RuntimeConfig global, ServiceResolverConfig serviceResolverConfig,
+                          String hystrixStreamPath, @Singular List<RevolverServiceConfig> services, MailBoxConfig mailBox) {
+        this.clientConfig = clientConfig;
+        this.global = global;
+        this.serviceResolverConfig = serviceResolverConfig;
+        this.hystrixStreamPath = hystrixStreamPath;
+        this.services = services;
+        this.mailBox = mailBox;
+        this.callbackTimeout = 3000;
+    }
+
 
     public RevolverConfig() {
         this.global = new RuntimeConfig();
         this.serviceResolverConfig = new ServiceResolverConfig();
         this.hystrixStreamPath = "/hystrix.stream";
         this.services = Lists.newArrayList();
+        this.callbackTimeout = 3000;
     }
 }

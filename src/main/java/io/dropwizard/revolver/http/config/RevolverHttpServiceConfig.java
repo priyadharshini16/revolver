@@ -33,6 +33,7 @@ import java.util.Set;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString(callSuper = true)
 public class RevolverHttpServiceConfig extends RevolverServiceConfig {
 
     @NotNull
