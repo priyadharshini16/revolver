@@ -29,6 +29,7 @@ import com.aerospike.client.task.IndexTask;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
 import io.dropwizard.revolver.aeroapike.AerospikeConnectionManager;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
@@ -104,7 +105,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
             final Bin service = new Bin(BinNames.SERVICE, request.getService());
             final Bin api = new Bin(BinNames.API, request.getApi());
             final Bin mode = new Bin(BinNames.MODE, request.getMode().toUpperCase());
-            final Bin method = new Bin(BinNames.METHOD, request.getMethod().toUpperCase());
+            final Bin method = new Bin(BinNames.METHOD, Strings.isNullOrEmpty(request.getMethod()) ? null : request.getMethod().toUpperCase());
             final Bin path = new Bin(BinNames.PATH, request.getPath());
             final Bin mailBoxId = new Bin(BinNames.MAILBOX_ID, mailboxId == null ? "NONE" : mailboxId);
             final Bin queryParams = new Bin(BinNames.QUERY_PARAMS, objectMapper.writeValueAsString(request.getQueryParams()));
