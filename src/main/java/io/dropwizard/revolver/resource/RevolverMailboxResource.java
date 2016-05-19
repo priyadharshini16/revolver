@@ -65,6 +65,7 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get the status of the request in the mailbox")
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     public RevolverRequestStateResponse requestStatus(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
@@ -92,6 +93,7 @@ public class RevolverMailboxResource {
     @POST
     @Metered
     @ApiOperation(value = "Send ack for a request so that the mailbox message can be marked as read")
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     public Response ack(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
@@ -123,6 +125,7 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get the request in the mailbox")
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     public RevolverCallbackRequest request(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverCallbackRequest callbackRequest = persistenceProvider.request(requestId);
@@ -161,7 +164,7 @@ public class RevolverMailboxResource {
             }
             val response = Response.status(callbackResponse.getStatusCode())
                     .entity(callbackResponse.getBody());
-            callbackResponse.getHeaders().forEach(response::header);
+            callbackResponse.getHeaders().forEach( (header, value) -> callbackResponse.getHeaders().put(header, value));
             return response.build();
         } catch (Exception e) {
             log.error("Error getting response", e);
@@ -176,6 +179,7 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get all the requests in the mailbox")
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     public List<RevolverCallbackRequest> requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
         try {
             List<RevolverCallbackRequest> callbackRequests = persistenceProvider.requests(mailboxId);

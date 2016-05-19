@@ -43,7 +43,7 @@ import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
 import io.dropwizard.revolver.exception.RevolverExceptionMapper;
 import io.dropwizard.revolver.exception.TimeoutExceptionMapper;
-import io.dropwizard.revolver.handler.RevolverCallbackRequestFilter;
+import io.dropwizard.revolver.filters.RevolverRequestFilter;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.auth.BasicAuthConfig;
 import io.dropwizard.revolver.http.auth.TokenAuthConfig;
@@ -124,7 +124,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
                 .persistenceProvider(persistenceProvider)
                 .revolverConfig(revolverConfig)
                 .build();
-        environment.jersey().register(new RevolverCallbackRequestFilter(revolverConfig));
+        environment.jersey().register(new RevolverRequestFilter(revolverConfig));
         environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(), msgPackObjectMapper, xmlObjectMapper, persistenceProvider));
         environment.jersey().register(new RevolverCallbackResource(persistenceProvider, callbackHandler));
         environment.jersey().register(new RevolverMailboxResource(persistenceProvider));
