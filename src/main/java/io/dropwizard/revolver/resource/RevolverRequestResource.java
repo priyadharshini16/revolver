@@ -19,6 +19,7 @@ package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.google.common.base.Strings;
@@ -47,6 +48,7 @@ import javax.ws.rs.core.*;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
@@ -215,13 +217,29 @@ public class RevolverRequestResource {
             httpResponse.entity(response.getBody());
             return httpResponse.build();
         }
-        Map<String, Object> responseData = null;
+        Object responseData = null;
         if(responseMediaType.startsWith(MediaType.APPLICATION_JSON)) {
+            final JsonNode jsonNode = jsonObjectMapper.readTree(response.getBody());
+            if(jsonNode.isArray()) {
+                responseData = jsonObjectMapper.convertValue(jsonNode, List.class);
+            } else {
+                responseData = jsonObjectMapper.convertValue(jsonNode, Map.class);
+            }
             responseData = jsonObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>(){});
         } else if(responseMediaType.startsWith(MediaType.APPLICATION_XML)) {
-            responseData = xmlObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>(){});
+            final JsonNode jsonNode = xmlObjectMapper.readTree(response.getBody());
+            if(jsonNode.isArray()) {
+                responseData = xmlObjectMapper.convertValue(jsonNode, List.class);
+            } else {
+                responseData = xmlObjectMapper.convertValue(jsonNode, Map.class);
+            }
         } else if(responseMediaType.startsWith(MsgPackMediaType.APPLICATION_MSGPACK)) {
-            responseData = msgPackObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            final JsonNode jsonNode = msgPackObjectMapper.readTree(response.getBody());
+            if(jsonNode.isArray()) {
+                responseData = msgPackObjectMapper.convertValue(jsonNode, List.class);
+            } else {
+                responseData = msgPackObjectMapper.convertValue(jsonNode, Map.class);
+            }
         }
         if(responseData == null) {
             httpResponse.entity(response.getBody());
