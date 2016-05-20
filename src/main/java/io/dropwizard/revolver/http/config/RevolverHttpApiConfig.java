@@ -23,6 +23,7 @@ import lombok.*;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.core.MediaType;
 import java.util.Collections;
 import java.util.Set;
 
@@ -43,6 +44,10 @@ public class RevolverHttpApiConfig extends CommandHandlerConfig {
     private boolean async = false;
 
     private boolean whitelist = false;
+
+    private String acceptType = MediaType.APPLICATION_JSON;
+
+    private  String acceptEncoding = "identity";
 
     @NotNull
     @NotEmpty

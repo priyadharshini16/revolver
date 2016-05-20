@@ -18,7 +18,6 @@
 package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -163,24 +162,26 @@ public class RevolverRequestResource {
         }
         val callMode = headers.getRequestHeaders().getFirst(RevolversHttpHeaders.CALL_MODE_HEADER);
         if(Strings.isNullOrEmpty(callMode)) {
-          return executeInline(service, apiMap.getApi().getApi(), method, path, headers, uriInfo, body);
+          return executeInline(service, apiMap.getApi(), method, path, headers, uriInfo, body);
         }
         switch (callMode.toUpperCase()) {
             case RevolverHttpCommand.CALL_MODE_POLLING:
-                return executeCommandAsync(service, apiMap.getApi().getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync());
+                return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync());
             case RevolverHttpCommand.CALL_MODE_CALLBACK:
                 if(Strings.isNullOrEmpty(headers.getHeaderString(RevolversHttpHeaders.CALLBACK_URI_HEADER))) {
                     return Response.status(Response.Status.BAD_REQUEST).build();
                 }
-                return executeCommandAsync(service, apiMap.getApi().getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync());
+                return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync());
         }
         return Response.status(Response.Status.BAD_REQUEST).build();
     }
 
-    private Response executeInline(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method,
+    private Response executeInline(final String service, final RevolverHttpApiConfig api, final RevolverHttpApiConfig.RequestMethod method,
                                    final String path, final HttpHeaders headers,
                                    final UriInfo uriInfo, final byte[] body) throws IOException, TimeoutException {
-        cleanHeaders(headers.getRequestHeaders());
+        val sanatizedHeaders = new MultivaluedHashMap<String, String>();
+        headers.getRequestHeaders().forEach(sanatizedHeaders::put);
+        cleanHeaders(sanatizedHeaders, api);
         val httpCommand = RevolverBundle.getHttpCommand(service);
         val response = httpCommand.execute(
                 RevolverHttpRequest.builder()
@@ -190,11 +191,11 @@ public class RevolverRequestResource {
                                         .transactionId(headers.getHeaderString(RevolversHttpHeaders.TXN_ID_HEADER))
                                         .timestamp(System.currentTimeMillis())
                                         .build())
-                        .api(api)
+                        .api(api.getApi())
                         .service(service)
                         .path(path)
                         .method(method)
-                        .headers(headers.getRequestHeaders())
+                        .headers(sanatizedHeaders)
                         .queryParams(uriInfo.getQueryParameters())
                         .body(body)
                         .build()
@@ -207,6 +208,7 @@ public class RevolverRequestResource {
         //Add all the headers except content type header
         response.getHeaders().keySet().parallelStream()
                 .filter( h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
+                .filter(h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH))
                 .forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
         final String responseMediaType = Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.APPLICATION_OCTET_STREAM : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
         final String requestMediaType = Strings.isNullOrEmpty(headers.getHeaderString(HttpHeaders.ACCEPT)) ? null : headers.getHeaderString(HttpHeaders.ACCEPT);
@@ -225,7 +227,6 @@ public class RevolverRequestResource {
             } else {
                 responseData = jsonObjectMapper.convertValue(jsonNode, Map.class);
             }
-            responseData = jsonObjectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>(){});
         } else if(responseMediaType.startsWith(MediaType.APPLICATION_XML)) {
             final JsonNode jsonNode = xmlObjectMapper.readTree(response.getBody());
             if(jsonNode.isArray()) {
@@ -249,7 +250,8 @@ public class RevolverRequestResource {
                 httpResponse.entity(jsonObjectMapper.writeValueAsBytes(responseData));
             } else if(requestMediaType.startsWith(MediaType.APPLICATION_XML)) {
                 httpResponse.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_XML);
-                httpResponse.entity(xmlObjectMapper.writeValueAsBytes(responseData));
+                httpResponse.entity(xmlObjectMapper.writer()
+                        .withRootName("Response").writeValueAsBytes(responseData));
             } else if(requestMediaType.startsWith(MsgPackMediaType.APPLICATION_MSGPACK)) {
                 httpResponse.header(HttpHeaders.CONTENT_TYPE, MsgPackMediaType.APPLICATION_MSGPACK);
                 httpResponse.entity(msgPackObjectMapper.writeValueAsBytes(responseData));
@@ -262,14 +264,20 @@ public class RevolverRequestResource {
     }
 
 
-    private void cleanHeaders(final MultivaluedMap<String, String> headers) {
+    private void cleanHeaders(final MultivaluedMap<String, String> headers, RevolverHttpApiConfig apiConfig) {
         headers.remove(HttpHeaders.HOST);
+        headers.remove(HttpHeaders.ACCEPT);
+        headers.remove(HttpHeaders.ACCEPT_ENCODING);
+        headers.putSingle(HttpHeaders.ACCEPT, apiConfig.getAcceptEncoding());
+        headers.putSingle(HttpHeaders.ACCEPT_ENCODING, apiConfig.getAcceptEncoding());
     }
 
-    private Response executeCommandAsync(final String service, final String api, final RevolverHttpApiConfig.RequestMethod method,
+    private Response executeCommandAsync(final String service, final RevolverHttpApiConfig api, final RevolverHttpApiConfig.RequestMethod method,
                                          final String path, final HttpHeaders headers,
                                          final UriInfo uriInfo, final byte[] body, final boolean isDownstreamAsync) throws Exception {
-        cleanHeaders(headers.getRequestHeaders());
+        val sanatizedHeaders = new MultivaluedHashMap<String, String>();
+        headers.getRequestHeaders().forEach(sanatizedHeaders::put);
+        cleanHeaders(sanatizedHeaders, api);
         val httpCommand = RevolverBundle.getHttpCommand(service);
         val requestId = headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
         val transactionId = headers.getHeaderString(RevolversHttpHeaders.TXN_ID_HEADER);
@@ -281,7 +289,7 @@ public class RevolverRequestResource {
         }
         persistenceProvider.saveRequest(requestId, mailBoxId,
                 RevolverCallbackRequest.builder()
-                        .api(api)
+                        .api(api.getApi())
                         .mode(headers.getRequestHeaders().getFirst(RevolversHttpHeaders.CALL_MODE_HEADER))
                         .callbackUri(headers.getRequestHeaders().getFirst(RevolversHttpHeaders.CALLBACK_URI_HEADER))
                         .method(headers.getRequestHeaders().getFirst(RevolversHttpHeaders.CALLBACK_METHOD_HEADER))
@@ -300,11 +308,11 @@ public class RevolverRequestResource {
                                         .transactionId(transactionId)
                                         .timestamp(System.currentTimeMillis())
                                         .build())
-                        .api(api)
+                        .api(api.getApi())
                         .service(service)
                         .path(path)
                         .method(method)
-                        .headers(headers.getRequestHeaders())
+                        .headers(sanatizedHeaders)
                         .queryParams(uriInfo.getQueryParameters())
                         .body(body)
                         .build()

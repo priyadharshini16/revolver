@@ -63,7 +63,7 @@ public class BaseRevolverTest {
     protected final Bootstrap<?> bootstrap = mock(Bootstrap.class);
     protected final Configuration configuration = mock(Configuration.class);
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    protected static final ObjectMapper mapper = new ObjectMapper();
 
     private MetricRegistry metricRegistry = new MetricRegistry();
 
