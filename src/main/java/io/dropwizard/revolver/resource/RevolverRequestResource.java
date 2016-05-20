@@ -268,7 +268,7 @@ public class RevolverRequestResource {
         headers.remove(HttpHeaders.HOST);
         headers.remove(HttpHeaders.ACCEPT);
         headers.remove(HttpHeaders.ACCEPT_ENCODING);
-        headers.putSingle(HttpHeaders.ACCEPT, apiConfig.getAcceptEncoding());
+        headers.putSingle(HttpHeaders.ACCEPT, apiConfig.getAcceptType());
         headers.putSingle(HttpHeaders.ACCEPT_ENCODING, apiConfig.getAcceptEncoding());
     }
 
