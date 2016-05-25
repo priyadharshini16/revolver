@@ -31,6 +31,7 @@ import io.dropwizard.revolver.core.tracing.TraceCollector;
 import io.dropwizard.revolver.core.tracing.TraceInfo;
 import io.dropwizard.revolver.core.util.RevolverCommandHelper;
 import io.dropwizard.revolver.core.util.RevolverExceptionHelper;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.MDC;
@@ -44,6 +45,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * @author phaneesh
  */
+@Slf4j
 public abstract class RevolverCommand<RequestType extends RevolverRequest, ResponseType extends RevolverResponse, ContextType extends RevolverContext, ServiceConfigurationType extends RevolverServiceConfig, CommandHandlerConfigType extends CommandHandlerConfig> {
 
     private final ContextType context;
@@ -77,8 +79,10 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
         final Stopwatch watch = Stopwatch.createStarted();
         String errorMessage = null;
         try {
-            return (ResponseType) new RevolverCommandHandler(RevolverCommandHelper.setter(this, request.getApi()),
+            ResponseType response = (ResponseType) new RevolverCommandHandler(RevolverCommandHelper.setter(this, request.getApi()),
                     this.context, this, normalizedRequest).execute();
+            log.debug("Command response: " +response);
+            return response;
         } catch (Throwable t) {
             val rootCause = ExceptionUtils.getRootCause(t);
             if( rootCause instanceof TimeoutException) {

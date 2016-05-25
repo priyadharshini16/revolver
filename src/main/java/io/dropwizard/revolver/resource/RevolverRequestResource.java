@@ -206,10 +206,12 @@ public class RevolverRequestResource {
     private Response transform(HttpHeaders headers, RevolverHttpResponse response) throws IOException {
         val httpResponse = Response.status(response.getStatusCode());
         //Add all the headers except content type header
-        response.getHeaders().keySet().parallelStream()
-                .filter( h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
-                .filter(h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH))
-                .forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
+        if(response.getHeaders() != null ) {
+            response.getHeaders().keySet().parallelStream()
+                    .filter( h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
+                    .filter(h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH))
+                    .forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
+        }
         final String responseMediaType = Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.APPLICATION_OCTET_STREAM : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
         final String requestMediaType = Strings.isNullOrEmpty(headers.getHeaderString(HttpHeaders.ACCEPT)) ? null : headers.getHeaderString(HttpHeaders.ACCEPT);
         //If no no accept was specified in request; just send it as the same content type as response
