@@ -127,10 +127,17 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     @Override
     public void setRequestState(String requestId, RevolverRequestState state) {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
-        final Bin binState = new Bin(BinNames.STATE, state.name());
-        final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
-        AerospikeConnectionManager.getClient().operate(null, key,
-                Operation.put(binState), Operation.put(updated));
+        final Record record = AerospikeConnectionManager.getClient().get(null, key, BinNames.STATE);
+        final RevolverRequestState requestState = RevolverRequestState.valueOf(record.getString(BinNames.STATE));
+        switch (requestState) {
+            case RESPONDED:
+                break;
+            default:
+                final Bin binState = new Bin(BinNames.STATE, state.name());
+                final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
+                AerospikeConnectionManager.getClient().operate(null, key,
+                        Operation.put(binState), Operation.put(updated));
+        }
     }
 
     @Override
