@@ -74,9 +74,10 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author phaneesh
@@ -153,7 +154,14 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     }
 
     private static Map<String, RevolverHttpApiConfig> generateApiConfigMap(final RevolverHttpServiceConfig serviceConfiguration) {
-        serviceConfiguration.getApis().forEach(apiConfig -> serviceToPathMap.add(serviceConfiguration.getService(),
+        val tokenMatch = Pattern.compile("\\{(([^/])+\\})");
+        List<RevolverHttpApiConfig> apis = serviceConfiguration.getApis().stream().collect(Collectors.toList());
+        Collections.sort(apis, (o1, o2) -> {
+            String o1Expr = generatePathExpression(o1.getPath());
+            String o2Expr = generatePathExpression(o2.getPath());
+            return tokenMatch.matcher(o2Expr).groupCount() - tokenMatch.matcher(o1Expr).groupCount();
+        });
+        apis.forEach(apiConfig -> serviceToPathMap.add(serviceConfiguration.getService(),
                 ApiPathMap.builder()
                         .api(apiConfig)
                         .path(generatePathExpression(apiConfig.getPath())).build()));
