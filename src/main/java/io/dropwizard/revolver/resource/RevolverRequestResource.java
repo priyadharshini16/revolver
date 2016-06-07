@@ -212,8 +212,8 @@ public class RevolverRequestResource {
                     .filter(h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH))
                     .forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
         }
-        final String responseMediaType = Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.APPLICATION_OCTET_STREAM : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
-        final String requestMediaType = Strings.isNullOrEmpty(headers.getHeaderString(HttpHeaders.ACCEPT)) ? null : headers.getHeaderString(HttpHeaders.ACCEPT);
+        final String responseMediaType = response.getHeaders() != null && Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.APPLICATION_OCTET_STREAM : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
+        final String requestMediaType = headers != null && Strings.isNullOrEmpty(headers.getHeaderString(HttpHeaders.ACCEPT)) ? null : headers.getHeaderString(HttpHeaders.ACCEPT);
         //If no no accept was specified in request; just send it as the same content type as response
         //Also send it as the content type as response content type if there requested content type is the same;
         if(Strings.isNullOrEmpty(requestMediaType) || requestMediaType.equals(responseMediaType)) {
