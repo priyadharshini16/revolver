@@ -28,6 +28,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
+@ToString
 public class ApiPathMap {
 
     private RevolverHttpApiConfig api;

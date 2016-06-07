@@ -161,12 +161,13 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
             String o2Expr = generatePathExpression(o2.getPath());
             return tokenMatch.matcher(o2Expr).groupCount() - tokenMatch.matcher(o1Expr).groupCount();
         });
+        Collections.sort(apis, (o1, o2) -> o1.getPath().compareTo(o2.getPath()));
         apis.forEach(apiConfig -> serviceToPathMap.add(serviceConfiguration.getService(),
                 ApiPathMap.builder()
                         .api(apiConfig)
                         .path(generatePathExpression(apiConfig.getPath())).build()));
         final ImmutableMap.Builder<String, RevolverHttpApiConfig> configMapBuilder = ImmutableMap.builder();
-        serviceConfiguration.getApis().forEach(apiConfig -> configMapBuilder.put(apiConfig.getApi(), apiConfig));
+        apis.forEach(apiConfig -> configMapBuilder.put(apiConfig.getApi(), apiConfig));
         return configMapBuilder.build();
     }
 
@@ -247,6 +248,14 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
             }
         }
+        System.out.println("***************************************************************************************************");
+        System.out.println("Revolver Service Map");
+        System.out.println("***************************************************************************************************");
+        serviceToPathMap.forEach( (k, v) -> {
+            System.out.println("\tService: " +k);
+            v.forEach( a -> a.getApi().getMethods().forEach(b -> System.out.println("\t\t[" +b.name() +"] " + a.getApi().getApi() +": " +a.getPath())));
+        });
+        System.out.println("***************************************************************************************************");
     }
 
     private static void registerHttpsCommand(RevolverConfig revolverConfig, RevolverServiceConfig config) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, KeyManagementException, UnrecoverableKeyException {
