@@ -109,7 +109,13 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
                 }
             }
         }
-        return RevolverHttpResponse.builder().statusCode(javax.ws.rs.core.Response.Status.BAD_REQUEST.getStatusCode()).build();
+        MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
+        headers.putSingle("X-REQUEST-PATH", request.getPath());
+        headers.putSingle("X-REQUEST-METHOD", request.getMethod().name());
+        headers.putSingle("X-REQUEST-API", apiConfig.getApi());
+        return RevolverHttpResponse.builder()
+                .headers(headers)
+                .statusCode(javax.ws.rs.core.Response.Status.BAD_REQUEST.getStatusCode()).build();
     }
 
     @Override

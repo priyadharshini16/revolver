@@ -200,18 +200,21 @@ public class RevolverRequestResource {
                         .body(body)
                         .build()
         );
-        return transform(headers, response);
+        return transform(headers, response, api.getApi(), path, method);
      }
 
-    private Response transform(HttpHeaders headers, RevolverHttpResponse response) throws IOException {
+    private Response transform(HttpHeaders headers, RevolverHttpResponse response, String api, String path, RevolverHttpApiConfig.RequestMethod method) throws IOException {
         val httpResponse = Response.status(response.getStatusCode());
         //Add all the headers except content type header
         if(response.getHeaders() != null ) {
-            response.getHeaders().keySet().parallelStream()
+            response.getHeaders().keySet().stream()
                     .filter( h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
                     .filter(h -> !h.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH))
                     .forEach( h -> httpResponse.header(h, response.getHeaders().getFirst(h)));
         }
+        httpResponse.header("X-REQUESTED-PATH", path);
+        httpResponse.header("X-REQUESTED-METHOD", method);
+        httpResponse.header("X-REQUESTED-API", api);
         final String responseMediaType = response.getHeaders() != null && Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.APPLICATION_OCTET_STREAM : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
         final String requestMediaType = headers != null && Strings.isNullOrEmpty(headers.getHeaderString(HttpHeaders.ACCEPT)) ? null : headers.getHeaderString(HttpHeaders.ACCEPT);
         //If no no accept was specified in request; just send it as the same content type as response
@@ -324,11 +327,11 @@ public class RevolverRequestResource {
             val result = response.get();
             if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode()) {
                 persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
-                return transform(headers, result);
+                return transform(headers, result, api.getApi(), path, method);
             } else {
                 persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
                 saveResponse(requestId, result);
-                return transform(headers, result);
+                return transform(headers, result, api.getApi(), path, method);
             }
         } else {
             response.thenAcceptAsync( result -> {
