@@ -40,5 +40,7 @@ public class RevolverApiMetadata {
 
     private boolean async;
 
+    private boolean secured;
+
     private Set<RevolverHttpApiConfig.RequestMethod> methods;
 }

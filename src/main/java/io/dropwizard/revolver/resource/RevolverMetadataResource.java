@@ -99,6 +99,7 @@ public class RevolverMetadataResource {
                 .name(a.getApi())
                 .path(a.getPath())
                 .methods(a.getMethods())
+                .secured(!a.isWhitelist())
                 .build()).sorted((o1, o2) -> o1.getPath().compareTo(o2.getPath())).collect(Collectors.toList());
     }
 

@@ -73,6 +73,12 @@ function addApis(service) {
             apiContent += '<span class="chip">' +service.apis[i].methods[j] +'</span>';
         }
         apiContent += '<span> /apis/' +service.name +'/' +service.apis[i].path +'</span>';
+        if(service.apis[i].secured == true) {
+            apiContent += '<span class="chip"><i class="small material-icons">vpn_key</i></span>';
+        }
+        if(service.apis[i].async == true) {
+            apiContent += '<span class="chip"><i class="small material-icons">shuffle</i></span>';
+        }
         apiContent += '</a></li>';
     }
     apiContent += '</li>';
