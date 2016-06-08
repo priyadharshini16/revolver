@@ -72,8 +72,7 @@ function addApis(service) {
         for(var j=0; j < service.apis[i].methods.length; j++) {
             apiContent += '<span class="chip">' +service.apis[i].methods[j] +'</span>';
         }
-        apiContent += '<span> ' +service.apis[i].name +' </span>';
-        apiContent += '<span> ' +service.apis[i].path +'</span>';
+        apiContent += '<span> /apis/' +service.name +'/' +service.apis[i].path +'</span>';
         apiContent += '</a></li>';
     }
     apiContent += '</li>';
