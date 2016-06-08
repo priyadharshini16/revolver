@@ -150,6 +150,7 @@ public class CallbackHandler {
             response.getHeaders().forEach(requestHeaders::put);
             //Remove host header
             requestHeaders.remove(HttpHeaders.HOST);
+            requestHeaders.putSingle(RevolversHttpHeaders.CALLBACK_RESPONSE_CODE, String.valueOf(response.getStatusCode()));
             String method = callbackRequest.getHeaders()
                     .getOrDefault(RevolversHttpHeaders.CALLBACK_METHOD_HEADER, Collections.singletonList("POST")).get(0);
             method = Strings.isNullOrEmpty(method) ? "POST" : method;
