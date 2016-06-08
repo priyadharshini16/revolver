@@ -67,7 +67,8 @@ public class RevolverMetadataResource {
         metadataResponse.clientId(config.getClientConfig().getClientName());
         final List<RevolverHttpServiceConfig> services = config.getServices().stream()
                 .filter(service -> service instanceof RevolverHttpServiceConfig)
-                .map(service -> ((RevolverHttpServiceConfig)service)).collect(Collectors.toList());
+                .map(service -> ((RevolverHttpServiceConfig)service))
+                .sorted((o1, o2) -> o1.getService().compareTo(o2.getService())).collect(Collectors.toList());
         services.forEach( s -> {
             RevolverServiceMetadata.RevolverServiceMetadataBuilder serviceMetadataBuilder = RevolverServiceMetadata.builder();
             serviceMetadataBuilder.name(s.getService())
@@ -98,7 +99,7 @@ public class RevolverMetadataResource {
                 .name(a.getApi())
                 .path(a.getPath())
                 .methods(a.getMethods())
-                .build()).collect(Collectors.toList());
+                .build()).sorted((o1, o2) -> o1.getPath().compareTo(o2.getPath())).collect(Collectors.toList());
     }
 
     private void instanceStats(String service, RangerEndpointSpec endpoint, RevolverServiceMetadata.RevolverServiceMetadataBuilder serviceMetadataBuilder) {
