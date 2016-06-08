@@ -70,17 +70,17 @@ function addApis(service) {
     for(var i=0; i < service.apis.length; i++) {
         apiContent += '<li class="api-collapsible"><a href="#!">';
         for(var j=0; j < service.apis[i].methods.length; j++) {
-            apiContent += '<span class="chip">' +service.apis[i].methods[j] +'</span>';
+            if(service.apis[i].secured == true) {
+                apiContent += '<span class="chip"><i class="small material-icons">lock</i> ';
+            } else {
+                apiContent += '<span class="chip"><i class="small material-icons">lock_open</i> ';
+            }
+            if(service.apis[i].async == true) {
+                apiContent += '<i class="small material-icons">swap_vert</i> ';
+            }
+            apiContent += service.apis[i].methods[j] +'</span>';
         }
         apiContent += '<span> /apis/' +service.name +'/' +service.apis[i].path +'</span>';
-        if(service.apis[i].secured == true) {
-            apiContent += '<i class="tiny material-icons">lock</i>';
-        } else {
-            apiContent += '<i class="tiny material-icons">lock_open</i>';
-        }
-        if(service.apis[i].async == true) {
-            apiContent += '<i class="tiny material-icons">swap_vert</i>';
-        }
         apiContent += '</a></li>';
     }
     apiContent += '</li>';
