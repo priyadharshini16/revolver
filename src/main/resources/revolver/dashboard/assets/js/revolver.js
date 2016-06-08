@@ -36,7 +36,7 @@ function addService(service) {
     }
     collectionContent += '<span class="service-status-icon title">' +service.name +'</span>';
     collectionContent += '<p>';
-    collectionContent += '<span class="chip">Type: ' +service.type +'</span>';
+    collectionContent += '<i class="small material-icons">http</i>';
     collectionContent += '<span class="chip" id="' +service.name +'_total_instances_count">Instances: ' +service.instances +'</span>';
     collectionContent += '<span class="chip" id="' +service.name +'_healthy_instances_count">Healthy: ' +service.healthy +'</span>';
     collectionContent += '<span class="chip" id="' +service.name +'_unhealthy_instances_count">Unhealthy: ' +service.unhealthy +'</span>';
@@ -74,10 +74,12 @@ function addApis(service) {
         }
         apiContent += '<span> /apis/' +service.name +'/' +service.apis[i].path +'</span>';
         if(service.apis[i].secured == true) {
-            apiContent += '<span class="chip"><i class="small material-icons">vpn_key</i></span>';
+            apiContent += '<i class="tiny material-icons">lock</i>';
+        } else {
+            apiContent += '<i class="tiny material-icons">lock_open</i>';
         }
         if(service.apis[i].async == true) {
-            apiContent += '<span class="chip"><i class="small material-icons">shuffle</i></span>';
+            apiContent += '<i class="tiny material-icons">swap_vert</i>';
         }
         apiContent += '</a></li>';
     }

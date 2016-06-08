@@ -26,6 +26,7 @@ import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.jetty.MutableServletContextHandler;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.metrics.MetricsFactory;
+import io.dropwizard.revolver.callback.CallbackHandler;
 import io.dropwizard.revolver.core.config.*;
 import io.dropwizard.revolver.core.config.hystrix.ThreadPoolConfig;
 import io.dropwizard.revolver.discovery.ServiceResolverConfig;
@@ -69,6 +70,7 @@ public class BaseRevolverTest {
 
     protected static final InMemoryPersistenceProvider inMemoryPersistenceProvider = new InMemoryPersistenceProvider();
 
+
     protected final RevolverBundle<Configuration> bundle = new RevolverBundle<Configuration>() {
 
         @Override
@@ -79,6 +81,9 @@ public class BaseRevolverTest {
     };
 
     protected RevolverConfig revolverConfig;
+
+    protected static CallbackHandler callbackHandler;
+
 
     @Before
     public void setup() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException,
@@ -199,5 +204,7 @@ public class BaseRevolverTest {
                 e.printStackTrace();
             }
         });
+        callbackHandler = CallbackHandler.builder()
+                .persistenceProvider(inMemoryPersistenceProvider).revolverConfig(revolverConfig).build();
     }
 }

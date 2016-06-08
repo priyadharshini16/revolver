@@ -29,6 +29,7 @@ import io.dropwizard.revolver.base.core.RevolverAckMessage;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
+import io.dropwizard.revolver.callback.CallbackHandler;
 import io.dropwizard.revolver.core.tracing.TraceInfo;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.RevolversHttpHeaders;
@@ -69,14 +70,17 @@ public class RevolverRequestResource {
 
     private final PersistenceProvider persistenceProvider;
 
+    private final CallbackHandler callbackHandler;
+
     public RevolverRequestResource(final ObjectMapper jsonObjectMapper,
                                    final ObjectMapper msgPackObjectMapper,
                                    final XmlMapper xmlObjectMapper,
-                                   final PersistenceProvider persistenceProvider) {
+                                   final PersistenceProvider persistenceProvider, final CallbackHandler callbackHandler) {
         this.jsonObjectMapper = jsonObjectMapper;
         this.msgPackObjectMapper = msgPackObjectMapper;
         this.xmlObjectMapper = xmlObjectMapper;
         this.persistenceProvider = persistenceProvider;
+        this.callbackHandler = callbackHandler;
     }
 
     @GET
@@ -166,12 +170,12 @@ public class RevolverRequestResource {
         }
         switch (callMode.toUpperCase()) {
             case RevolverHttpCommand.CALL_MODE_POLLING:
-                return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync());
+                return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync(), callMode);
             case RevolverHttpCommand.CALL_MODE_CALLBACK:
                 if(Strings.isNullOrEmpty(headers.getHeaderString(RevolversHttpHeaders.CALLBACK_URI_HEADER))) {
                     return Response.status(Response.Status.BAD_REQUEST).build();
                 }
-                return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync());
+                return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync(), callMode);
         }
         return Response.status(Response.Status.BAD_REQUEST).build();
     }
@@ -279,7 +283,7 @@ public class RevolverRequestResource {
 
     private Response executeCommandAsync(final String service, final RevolverHttpApiConfig api, final RevolverHttpApiConfig.RequestMethod method,
                                          final String path, final HttpHeaders headers,
-                                         final UriInfo uriInfo, final byte[] body, final boolean isDownstreamAsync) throws Exception {
+                                         final UriInfo uriInfo, final byte[] body, final boolean isDownstreamAsync, final String callMode) throws Exception {
         val sanatizedHeaders = new MultivaluedHashMap<String, String>();
         headers.getRequestHeaders().forEach(sanatizedHeaders::put);
         cleanHeaders(sanatizedHeaders, api);
@@ -327,12 +331,11 @@ public class RevolverRequestResource {
             val result = response.get();
             if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode()) {
                 persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
-                return transform(headers, result, api.getApi(), path, method);
             } else {
                 persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
                 saveResponse(requestId, result);
-                return transform(headers, result, api.getApi(), path, method);
             }
+            return transform(headers, result, api.getApi(), path, method);
         } else {
             response.thenAcceptAsync( result -> {
                 if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode()) {
@@ -343,6 +346,9 @@ public class RevolverRequestResource {
                 } else {
                     persistenceProvider.setRequestState(requestId, RevolverRequestState.ERROR);
                     saveResponse(requestId, result);
+                }
+                if(callMode != null && callMode.equals(RevolverHttpCommand.CALL_MODE_CALLBACK)) {
+                    callbackHandler.handle(requestId);
                 }
             });
             return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build()).build();
