@@ -20,10 +20,7 @@ package io.dropwizard.revolver.resource;
 import com.codahale.metrics.annotation.Metered;
 import com.google.common.base.Strings;
 import io.dropwizard.msgpack.MsgPackMediaType;
-import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
-import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
-import io.dropwizard.revolver.base.core.RevolverRequestState;
-import io.dropwizard.revolver.base.core.RevolverRequestStateResponse;
+import io.dropwizard.revolver.base.core.*;
 import io.dropwizard.revolver.exception.RevolverException;
 import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
@@ -38,8 +35,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.inject.Singleton;
 import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.core.*;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -232,5 +229,34 @@ public class RevolverMailboxResource {
                     .message(ExceptionUtils.getRootCause(e).getMessage()).build();
 
         }
+    }
+
+    @Path("/v1/message/persist")
+    @POST
+    @Metered
+    @ApiOperation(value = "Persist a request in the mailbox")
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    public Response persistRequest(@Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) {
+        val requestId = headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
+        val mailBoxId = headers.getHeaderString(RevolversHttpHeaders.MAILBOX_ID_HEADER);
+        //Short circuit if it is a duplicate request
+        if(persistenceProvider.exists(requestId)) {
+            return Response.status(Response.Status.NOT_ACCEPTABLE)
+                    .entity(Collections.singletonMap("message", "Duplicate")).build();
+        }
+        persistenceProvider.saveRequest(requestId, mailBoxId,
+                RevolverCallbackRequest.builder()
+                        .api("persist")
+                        .mode("POLLING")
+                        .callbackUri(null)
+                        .method("POST")
+                        .service("mailbox")
+                        .path(uriInfo.getPath())
+                        .headers(headers.getRequestHeaders())
+                        .queryParams(uriInfo.getQueryParameters())
+                        .body(body)
+                        .build()
+        );
+        return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build()).build();
     }
 }
