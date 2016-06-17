@@ -62,7 +62,7 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get the status of the request in the mailbox")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
     public RevolverRequestStateResponse requestStatus(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
@@ -90,7 +90,7 @@ public class RevolverMailboxResource {
     @POST
     @Metered
     @ApiOperation(value = "Send ack for a request so that the mailbox message can be marked as read")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
     public Response ack(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
@@ -122,7 +122,7 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get the request in the mailbox")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
     public RevolverCallbackRequest request(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverCallbackRequest callbackRequest = persistenceProvider.request(requestId);
@@ -148,7 +148,7 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get the response for a request in the mailbox")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
     public Response response(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverCallbackResponse callbackResponse = persistenceProvider.response(requestId);
@@ -176,7 +176,7 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get all the requests in the mailbox")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
     public List<RevolverCallbackRequest> requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
         try {
             List<RevolverCallbackRequest> callbackRequests = persistenceProvider.requests(mailboxId);
@@ -202,7 +202,7 @@ public class RevolverMailboxResource {
     @GET
     @Metered
     @ApiOperation(value = "Get all the responses in the mailbox")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
     public List<RevolverCallbackResponse> responses(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
         try {
             if(Strings.isNullOrEmpty(mailboxId)) {
@@ -235,7 +235,7 @@ public class RevolverMailboxResource {
     @POST
     @Metered
     @ApiOperation(value = "Persist a request in the mailbox")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
     public Response persistRequest(@Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) {
         val requestId = headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
         val mailBoxId = headers.getHeaderString(RevolversHttpHeaders.MAILBOX_ID_HEADER);

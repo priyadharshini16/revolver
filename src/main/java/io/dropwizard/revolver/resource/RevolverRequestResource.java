@@ -87,7 +87,7 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver GET api endpoint")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.WILDCARD})
     public Response get(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.GET, path, headers, uriInfo, null);
@@ -97,7 +97,7 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver HEAD api endpoint")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.WILDCARD})
     public Response head(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.HEAD, path, headers, uriInfo, null);
@@ -107,8 +107,8 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver POST api endpoint")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
-    @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.WILDCARD})
+    @Consumes({MediaType.WILDCARD})
     public Response post(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.POST, path, headers, uriInfo, body);
@@ -118,8 +118,8 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver PUT api endpoint")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
-    @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.WILDCARD})
+    @Consumes({MediaType.WILDCARD})
     public Response put(@PathParam("service") final String service,
                          @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PUT, path, headers, uriInfo, body);
@@ -129,7 +129,7 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver DELETE api endpoint")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.WILDCARD})
     public Response delete(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.DELETE, path, headers, uriInfo, null);
@@ -139,8 +139,8 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver PATCH api endpoint")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
-    @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.WILDCARD})
+    @Consumes({MediaType.WILDCARD})
     public Response patch(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PATCH, path, headers, uriInfo, body);
@@ -150,8 +150,8 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver OPTIONS api endpoint")
-    @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
-    @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+    @Produces({MediaType.WILDCARD})
+    @Consumes({MediaType.WILDCARD})
     public Response options(@PathParam("service") final String service,
                           @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.OPTIONS, path, headers, uriInfo, body);
@@ -219,7 +219,7 @@ public class RevolverRequestResource {
         httpResponse.header("X-REQUESTED-PATH", path);
         httpResponse.header("X-REQUESTED-METHOD", method);
         httpResponse.header("X-REQUESTED-API", api);
-        final String responseMediaType = response.getHeaders() != null && Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.APPLICATION_OCTET_STREAM : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
+        final String responseMediaType = response.getHeaders() != null && Strings.isNullOrEmpty(response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)) ? MediaType.TEXT_HTML : response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
         final String requestMediaType = headers != null && Strings.isNullOrEmpty(headers.getHeaderString(HttpHeaders.ACCEPT)) ? null : headers.getHeaderString(HttpHeaders.ACCEPT);
         //If no no accept was specified in request; just send it as the same content type as response
         //Also send it as the content type as response content type if there requested content type is the same;
