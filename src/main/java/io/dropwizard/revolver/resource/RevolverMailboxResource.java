@@ -239,11 +239,6 @@ public class RevolverMailboxResource {
     public Response persistRequest(@Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) {
         val requestId = headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
         val mailBoxId = headers.getHeaderString(RevolversHttpHeaders.MAILBOX_ID_HEADER);
-        //Short circuit if it is a duplicate request
-        if(persistenceProvider.exists(requestId)) {
-            return Response.status(Response.Status.NOT_ACCEPTABLE)
-                    .entity(Collections.singletonMap("message", "Duplicate")).build();
-        }
         persistenceProvider.saveRequest(requestId, mailBoxId,
                 RevolverCallbackRequest.builder()
                         .api("persist")
