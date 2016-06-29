@@ -219,7 +219,10 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
         val httpRequest = new Request.Builder()
                 .url(url);
         if (null != request.getHeaders()) {
-            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
+            request.getHeaders()
+                    .forEach((key, values) ->
+                            values.forEach(value ->
+                                    httpRequest.addHeader(key, value)));
         }
         if(request.getBody() != null) {
             if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)))
