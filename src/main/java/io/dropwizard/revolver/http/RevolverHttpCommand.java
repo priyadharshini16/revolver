@@ -143,7 +143,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
                 .url(url);
         httpRequest.get();
         if (null != request.getHeaders()) {
-            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.header(key, value)));
+            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
         }
         trackingHeaders(request, httpRequest);
         return executeRequest(apiConfiguration, httpRequest.build(), true);
@@ -157,7 +157,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
                 .url(url);
         httpRequest.method("OPTIONS", null);
         if (null != request.getHeaders()) {
-            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.header(key, value)));
+            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
         }
         trackingHeaders(request, httpRequest);
         return executeRequest(apiConfiguration, httpRequest.build(), true);
@@ -171,7 +171,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
                 .url(url);
         httpRequest.head();
         if (null != request.getHeaders()) {
-            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.header(key, value)));
+            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
         }
         trackingHeaders(request, httpRequest);
         return executeRequest(apiConfiguration, httpRequest.build(), false);
@@ -185,7 +185,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
                 .url(url);
         httpRequest.delete();
         if (null != request.getHeaders()) {
-            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.header(key, value)));
+            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
         }
         trackingHeaders(request, httpRequest);
         return executeRequest(apiConfiguration, httpRequest.build(), true);
@@ -198,7 +198,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
         val httpRequest = new Request.Builder()
                 .url(url);
         if (null != request.getHeaders()) {
-            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.header(key, value)));
+            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
         }
         if(request.getBody() != null) {
             if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)))
@@ -222,7 +222,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
             request.getHeaders()
                     .forEach((key, values) ->
                             values.forEach(value ->
-                                    httpRequest.header(key, value)));
+                                    httpRequest.addHeader(key, value)));
         }
         if(request.getBody() != null) {
             if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)))
@@ -243,7 +243,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
         val httpRequest = new Request.Builder()
                 .url(url);
         if (null != request.getHeaders()) {
-            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.header(key, value)));
+            request.getHeaders().forEach((key, values) -> values.forEach(value -> httpRequest.addHeader(key, value)));
         }
         if(request.getBody() != null) {
             if(null != request.getHeaders() && StringUtils.isNotBlank(request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE)))
