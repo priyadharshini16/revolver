@@ -161,7 +161,7 @@ public class RevolverMailboxResource {
             }
             val response = Response.status(callbackResponse.getStatusCode())
                     .entity(callbackResponse.getBody());
-            callbackResponse.getHeaders().forEach(response::header);
+            callbackResponse.getHeaders().forEach( (k,v) -> v.stream().forEach(h -> response.header(k, h)));
             return response.build();
         } catch (Exception e) {
             log.error("Error getting response", e);
