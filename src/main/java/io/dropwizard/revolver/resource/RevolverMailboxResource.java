@@ -63,7 +63,7 @@ public class RevolverMailboxResource {
     @Metered
     @ApiOperation(value = "Get the status of the request in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
-    public RevolverRequestStateResponse requestStatus(@PathParam("requestId") final String requestId) throws RevolverException {
+    public Response requestStatus(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
             if(state == null) {
@@ -73,10 +73,10 @@ public class RevolverMailboxResource {
                         .errorCode("R002")
                         .build();
             }
-            return RevolverRequestStateResponse.builder()
+            return Response.ok(RevolverRequestStateResponse.builder()
                     .requestId(requestId)
                     .state(state.name())
-                    .build();
+                    .build()).build();
         } catch (Exception e) {
             log.error("Error getting request state", e);
             throw RevolverException.builder()
@@ -123,7 +123,7 @@ public class RevolverMailboxResource {
     @Metered
     @ApiOperation(value = "Get the request in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
-    public RevolverCallbackRequest request(@PathParam("requestId") final String requestId) throws RevolverException {
+    public Response request(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverCallbackRequest callbackRequest = persistenceProvider.request(requestId);
             if(callbackRequest == null) {
@@ -133,14 +133,13 @@ public class RevolverMailboxResource {
                         .errorCode("R002")
                         .build();
             }
-            return callbackRequest;
+            return Response.ok(callbackRequest).build();
         } catch (Exception e) {
             log.error("Error getting request", e);
             throw RevolverException.builder()
                     .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
                     .errorCode("R001")
                     .message(ExceptionUtils.getRootCause(e).getMessage()).build();
-
         }
     }
 
@@ -161,7 +160,7 @@ public class RevolverMailboxResource {
             }
             val response = Response.status(callbackResponse.getStatusCode())
                     .entity(callbackResponse.getBody());
-            callbackResponse.getHeaders().forEach( (k,v) -> v.stream().forEach(h -> response.header(k, h)));
+            callbackResponse.getHeaders().forEach( (k,v) -> v.forEach(h -> response.header(k, h)));
             return response.build();
         } catch (Exception e) {
             log.error("Error getting response", e);
@@ -177,7 +176,7 @@ public class RevolverMailboxResource {
     @Metered
     @ApiOperation(value = "Get all the requests in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
-    public List<RevolverCallbackRequest> requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
+    public Response requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
         try {
             List<RevolverCallbackRequest> callbackRequests = persistenceProvider.requests(mailboxId);
             if(callbackRequests == null) {
@@ -187,7 +186,7 @@ public class RevolverMailboxResource {
                         .errorCode("R002")
                         .build();
             }
-            return callbackRequests;
+            return Response.ok(callbackRequests).build();
         } catch (Exception e) {
             log.error("Error getting requests", e);
             throw RevolverException.builder()
@@ -203,7 +202,7 @@ public class RevolverMailboxResource {
     @Metered
     @ApiOperation(value = "Get all the responses in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
-    public List<RevolverCallbackResponse> responses(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
+    public Response responses(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
         try {
             if(Strings.isNullOrEmpty(mailboxId)) {
                 throw RevolverException.builder()
@@ -220,7 +219,7 @@ public class RevolverMailboxResource {
                         .errorCode("R002")
                         .build();
             }
-            return callbackResponses;
+            return Response.ok(callbackResponses).build();
         } catch (Exception e) {
             log.error("Error getting responses", e);
             throw RevolverException.builder()
