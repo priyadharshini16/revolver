@@ -18,12 +18,15 @@
 package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.google.common.base.Strings;
 import io.dropwizard.msgpack.MsgPackMediaType;
 import io.dropwizard.revolver.base.core.*;
 import io.dropwizard.revolver.exception.RevolverException;
 import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
+import io.dropwizard.revolver.util.ResponseTransformationUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.AllArgsConstructor;
@@ -55,15 +58,22 @@ public class RevolverMailboxResource {
 
     private PersistenceProvider persistenceProvider;
 
+    private ObjectMapper jsonObjectMapper;
+
+    private XmlMapper xmlObjectMapper;
+
+    private ObjectMapper msgPackObjectMapper;
+
     private static final Map<String, String> notFound = Collections.singletonMap("message", "Request not found");
     private static final Map<String, String> error = Collections.singletonMap("message", "Server error");
+
 
     @Path("/v1/request/status/{requestId}")
     @GET
     @Metered
     @ApiOperation(value = "Get the status of the request in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
-    public Response requestStatus(@PathParam("requestId") final String requestId) throws RevolverException {
+    public Response requestStatus(@PathParam("requestId") final String requestId, @Context final HttpHeaders headers) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
             if(state == null) {
@@ -73,10 +83,18 @@ public class RevolverMailboxResource {
                         .errorCode("R002")
                         .build();
             }
-            return Response.ok(RevolverRequestStateResponse.builder()
+            RevolverRequestStateResponse response = RevolverRequestStateResponse.builder()
                     .requestId(requestId)
                     .state(state.name())
-                    .build()).build();
+                    .build();
+            if(headers.getAcceptableMediaTypes().size() == 0) {
+                return Response.ok(ResponseTransformationUtil.transform(response,
+                        MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                        MediaType.APPLICATION_JSON).build();
+            }
+            return Response.ok(ResponseTransformationUtil.transform(response,
+                    headers.getAcceptableMediaTypes().get(0).getType(), jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                    headers.getAcceptableMediaTypes().get(0).getType()).build();
         } catch (Exception e) {
             log.error("Error getting request state", e);
             throw RevolverException.builder()
@@ -123,7 +141,7 @@ public class RevolverMailboxResource {
     @Metered
     @ApiOperation(value = "Get the request in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
-    public Response request(@PathParam("requestId") final String requestId) throws RevolverException {
+    public Response request(@PathParam("requestId") final String requestId, @Context final HttpHeaders headers) throws RevolverException {
         try {
             RevolverCallbackRequest callbackRequest = persistenceProvider.request(requestId);
             if(callbackRequest == null) {
@@ -133,7 +151,14 @@ public class RevolverMailboxResource {
                         .errorCode("R002")
                         .build();
             }
-            return Response.ok(callbackRequest).build();
+            if(headers.getAcceptableMediaTypes().size() == 0) {
+                return Response.ok(ResponseTransformationUtil.transform(callbackRequest,
+                        MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                        MediaType.APPLICATION_JSON).build();
+            }
+            return Response.ok(ResponseTransformationUtil.transform(callbackRequest,
+                    headers.getAcceptableMediaTypes().get(0).getType(), jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                    headers.getAcceptableMediaTypes().get(0).getType()).build();
         } catch (Exception e) {
             log.error("Error getting request", e);
             throw RevolverException.builder()
@@ -176,7 +201,7 @@ public class RevolverMailboxResource {
     @Metered
     @ApiOperation(value = "Get all the requests in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
-    public Response requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
+    public Response requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId, @Context final HttpHeaders headers) throws RevolverException {
         try {
             List<RevolverCallbackRequest> callbackRequests = persistenceProvider.requests(mailboxId);
             if(callbackRequests == null) {
@@ -186,7 +211,14 @@ public class RevolverMailboxResource {
                         .errorCode("R002")
                         .build();
             }
-            return Response.ok(callbackRequests).build();
+            if(headers.getAcceptableMediaTypes().size() == 0) {
+                return Response.ok(ResponseTransformationUtil.transform(callbackRequests,
+                        MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                        MediaType.APPLICATION_JSON).build();
+            }
+            return Response.ok(ResponseTransformationUtil.transform(callbackRequests,
+                    headers.getAcceptableMediaTypes().get(0).getType(), jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                    headers.getAcceptableMediaTypes().get(0).getType()).build();
         } catch (Exception e) {
             log.error("Error getting requests", e);
             throw RevolverException.builder()
@@ -202,7 +234,7 @@ public class RevolverMailboxResource {
     @Metered
     @ApiOperation(value = "Get all the responses in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
-    public Response responses(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId) throws RevolverException {
+    public Response responses(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId, @Context final HttpHeaders headers) throws RevolverException {
         try {
             if(Strings.isNullOrEmpty(mailboxId)) {
                 throw RevolverException.builder()
@@ -219,7 +251,14 @@ public class RevolverMailboxResource {
                         .errorCode("R002")
                         .build();
             }
-            return Response.ok(callbackResponses).build();
+            if(headers.getAcceptableMediaTypes().size() == 0) {
+                return Response.ok(ResponseTransformationUtil.transform(callbackResponses,
+                        MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                        MediaType.APPLICATION_JSON).build();
+            }
+            return Response.ok(ResponseTransformationUtil.transform(callbackResponses,
+                    headers.getAcceptableMediaTypes().get(0).getType(), jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                    headers.getAcceptableMediaTypes().get(0).getType()).build();
         } catch (Exception e) {
             log.error("Error getting responses", e);
             throw RevolverException.builder()
@@ -235,7 +274,8 @@ public class RevolverMailboxResource {
     @Metered
     @ApiOperation(value = "Persist a request in the mailbox")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
-    public Response persistRequest(@Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) {
+    public Response persistRequest(@Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws RevolverException {
+        try {
         val requestId = headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
         val mailBoxId = headers.getHeaderString(RevolversHttpHeaders.MAILBOX_ID_HEADER);
         persistenceProvider.saveRequest(requestId, mailBoxId,
@@ -251,6 +291,22 @@ public class RevolverMailboxResource {
                         .body(body)
                         .build()
         );
-        return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build()).build();
+        RevolverAckMessage response = RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build();
+        if(headers.getAcceptableMediaTypes().size() == 0) {
+            return Response.ok(ResponseTransformationUtil.transform(response,
+                    MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                    MediaType.APPLICATION_JSON).build();
+        }
+        return Response.ok(ResponseTransformationUtil.transform(response,
+                headers.getAcceptableMediaTypes().get(0).getType(), jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                headers.getAcceptableMediaTypes().get(0).getType()).build();
+        } catch (Exception e) {
+            log.error("Error getting responses", e);
+            throw RevolverException.builder()
+                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+                    .errorCode("R001")
+                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+
+        }
     }
 }

@@ -17,9 +17,11 @@
 
 package io.dropwizard.revolver.exception;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import io.dropwizard.msgpack.MsgPackMediaType;
 
+import javax.inject.Singleton;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -31,16 +33,27 @@ import javax.ws.rs.ext.Provider;
  */
 @Provider
 @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+@Singleton
 public class RevolverExceptionMapper implements ExceptionMapper<RevolverException> {
+
+    private ObjectMapper objectMapper;
+
+    public RevolverExceptionMapper(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public Response toResponse(RevolverException exception) {
-        return Response.status(exception.getStatus())
-                .entity(
-                        ImmutableMap.builder()
-                                .put("errorCode", exception.getErrorCode())
-                                .put("message", exception.getMessage()).build()
-                )
-                .build();
+        try {
+            return Response.status(exception.getStatus())
+                    .entity(objectMapper.writeValueAsBytes(
+                            ImmutableMap.builder()
+                                    .put("errorCode", exception.getErrorCode())
+                                    .put("message", exception.getMessage()).build()
+                    ))
+                    .build();
+        } catch(Exception e) {
+            return Response.serverError().entity("Server Error".getBytes()).build();
+        }
     }
 }

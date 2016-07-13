@@ -17,9 +17,11 @@
 
 package io.dropwizard.revolver.exception;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import io.dropwizard.msgpack.MsgPackMediaType;
 
+import javax.inject.Singleton;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -32,16 +34,27 @@ import java.util.concurrent.TimeoutException;
  */
 @Provider
 @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
+@Singleton
 public class TimeoutExceptionMapper implements ExceptionMapper<TimeoutException> {
+
+    private ObjectMapper objectMapper;
+
+    public TimeoutExceptionMapper(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public Response toResponse(TimeoutException exception) {
-        return Response.status(Response.Status.GATEWAY_TIMEOUT)
-                .entity(
-                        ImmutableMap.builder()
-                                .put("errorCode", "R000")
-                                .put("message", "Service timeout").build()
-                )
-                .build();
+        try {
+            return Response.status(Response.Status.GATEWAY_TIMEOUT)
+                    .entity(objectMapper.writeValueAsBytes(
+                            ImmutableMap.builder()
+                                    .put("errorCode", "R000")
+                                    .put("message", "Service timeout").build()
+                    ))
+                    .build();
+        } catch(Exception e) {
+            return Response.serverError().entity("Server Error".getBytes()).build();
+        }
     }
 }

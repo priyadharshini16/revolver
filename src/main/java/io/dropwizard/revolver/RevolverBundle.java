@@ -118,8 +118,8 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         } else {
             environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, revolverConfig.getHystrixStreamPath());
         }
-        environment.jersey().register(new RevolverExceptionMapper());
-        environment.jersey().register(new TimeoutExceptionMapper());
+        environment.jersey().register(new RevolverExceptionMapper(environment.getObjectMapper()));
+        environment.jersey().register(new TimeoutExceptionMapper(environment.getObjectMapper()));
         final PersistenceProvider persistenceProvider = getPersistenceProvider(configuration, environment);
         final CallbackHandler callbackHandler = CallbackHandler.builder()
                 .persistenceProvider(persistenceProvider)
@@ -129,7 +129,8 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         environment.jersey().register(new RevolverRequestResource(environment.getObjectMapper(),
                 msgPackObjectMapper, xmlObjectMapper, persistenceProvider, callbackHandler));
         environment.jersey().register(new RevolverCallbackResource(persistenceProvider, callbackHandler));
-        environment.jersey().register(new RevolverMailboxResource(persistenceProvider));
+        environment.jersey().register(new RevolverMailboxResource(persistenceProvider, environment.getObjectMapper(),
+                xmlObjectMapper, msgPackObjectMapper));
         environment.jersey().register(new RevolverMetadataResource(revolverConfig));
     }
 
