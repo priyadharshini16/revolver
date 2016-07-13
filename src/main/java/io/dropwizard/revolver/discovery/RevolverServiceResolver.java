@@ -184,7 +184,6 @@ public class RevolverServiceResolver {
             final SimpleShardedServiceFinder<ShardInfo> finder = this.serviceFinders.get(rangerEndpointSpecification.getService()).getShardFinder();
             final ServiceNode<ShardInfo> node = finder.get(ShardInfo.builder().environment(rangerEndpointSpecification.getEnvironment()).build());
             this.endpoint = Endpoint.builder().host(node.getHost()).port(node.getPort()).build();
-            System.out.println(node);
         }
 
         Endpoint resolve(final EndpointSpec specification) {
