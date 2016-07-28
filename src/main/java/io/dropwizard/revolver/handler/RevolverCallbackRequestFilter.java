@@ -55,8 +55,6 @@ public class RevolverCallbackRequestFilter implements ContainerRequestFilter {
         if(!containerRequestContext.getUriInfo().getPath().startsWith("revolver/v1")) {
             String requestId = containerRequestContext.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
             val transactionId = containerRequestContext.getHeaderString(RevolversHttpHeaders.TXN_ID_HEADER);
-            val host = containerRequestContext.getHeaderString(HttpHeaders.HOST);
-            containerRequestContext.getHeaders().add(FORWARDED_FOR, host);
             if(Strings.isNullOrEmpty(requestId)) {
                 requestId = UUID.randomUUID().toString();
                 containerRequestContext.getHeaders().add(RevolversHttpHeaders.REQUEST_ID_HEADER, requestId);
