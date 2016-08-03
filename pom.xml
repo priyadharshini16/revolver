@@ -4,7 +4,7 @@
 
     <groupId>io.dropwizard</groupId>
     <artifactId>dropwizard-revolver</artifactId>
-    <version>1.0.0-rc2-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>dropwizard-revolver</name>
@@ -44,19 +44,19 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>1.0.0-rc2</dropwizard.version>
-        <dropwizard.swagger.version>1.0.0-rc2-1</dropwizard.swagger.version>
-        <dropwizard.servicediscovery>1.0.0-rc2-SNAPSHOT</dropwizard.servicediscovery>
-        <xml.bundle>1.0.0-rc2-1</xml.bundle>
-        <msgpack.bundle>1.0.0-rc2-1</msgpack.bundle>
-        <hystrix.version>1.5.2</hystrix.version>
+        <dropwizard.version>1.0.0</dropwizard.version>
+        <dropwizard.swagger.version>1.0.0-1</dropwizard.swagger.version>
+        <dropwizard.servicediscovery>1.0.0-SNAPSHOT</dropwizard.servicediscovery>
+        <xml.bundle>1.0.0-1</xml.bundle>
+        <msgpack.bundle>1.0.0-1</msgpack.bundle>
+        <hystrix.version>1.5.3</hystrix.version>
         <ranger.version>0.2.1</ranger.version>
         <okhttp.version>3.2.0</okhttp.version>
         <woodstox.version>4.4.1</woodstox.version>
-        <aerospike.version>3.2.1</aerospike.version>
+        <aerospike.version>3.2.4</aerospike.version>
         <junit.version>4.12</junit.version>
         <wiremock.version>1.58</wiremock.version>
-        <lombok.version>1.16.6</lombok.version>
+        <lombok.version>1.16.10</lombok.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
@@ -219,7 +219,7 @@
                         </goals>
                     </execution>
                 </executions>
-                <version>1.16.6.1</version>
+                <version>1.16.10.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -291,7 +291,7 @@
                     <plugin>
                         <groupId>org.projectlombok</groupId>
                         <artifactId>lombok-maven-plugin</artifactId>
-                        <version>1.16.6.1</version>
+                        <version>1.16.10.0</version>
                         <dependencies>
                             <dependency>
                                 <groupId>sun.jdk</groupId>
