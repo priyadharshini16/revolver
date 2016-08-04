@@ -295,7 +295,9 @@ public class RevolverRequestResource {
         //Short circuit if it is a duplicate request
         if(persistenceProvider.exists(requestId)) {
             return Response.status(Response.Status.NOT_ACCEPTABLE)
-                    .entity(Collections.singletonMap("message", "Duplicate")).build();
+                    .entity(ResponseTransformationUtil.transform(Collections.singletonMap("message", "Duplicate"),
+                            headers.getMediaType() == null ? MediaType.APPLICATION_JSON : headers.getMediaType().toString(),
+                            jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper)).build();
         }
         persistenceProvider.saveRequest(requestId, mailBoxId,
                 RevolverCallbackRequest.builder()
