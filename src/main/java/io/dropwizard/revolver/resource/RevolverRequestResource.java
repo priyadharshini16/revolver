@@ -37,6 +37,7 @@ import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.model.RevolverHttpRequest;
 import io.dropwizard.revolver.http.model.RevolverHttpResponse;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
+import io.dropwizard.revolver.util.ResponseTransformationUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -351,7 +352,11 @@ public class RevolverRequestResource {
                     callbackHandler.handle(requestId);
                 }
             });
-            return Response.accepted().entity(RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build()).build();
+            RevolverAckMessage revolverAckMessage = RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build();
+            byte ackMessage[] = ResponseTransformationUtil.transform(revolverAckMessage,
+                    headers.getMediaType() == null ? MediaType.APPLICATION_JSON : headers.getMediaType().toString(),
+                    jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper);
+            return Response.accepted().entity(ackMessage).build();
         }
     }
 
