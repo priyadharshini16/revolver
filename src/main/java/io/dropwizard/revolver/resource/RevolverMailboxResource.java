@@ -40,9 +40,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author phaneesh
@@ -63,10 +61,6 @@ public class RevolverMailboxResource {
     private XmlMapper xmlObjectMapper;
 
     private ObjectMapper msgPackObjectMapper;
-
-    private static final Map<String, String> notFound = Collections.singletonMap("message", "Request not found");
-    private static final Map<String, String> error = Collections.singletonMap("message", "Server error");
-
 
     @Path("/v1/request/status/{requestId}")
     @GET

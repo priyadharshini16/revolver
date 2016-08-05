@@ -163,7 +163,11 @@ public class RevolverRequestResource {
                                     final HttpHeaders headers, final UriInfo uriInfo, final byte[] body) throws Exception {
         val apiMap = RevolverBundle.matchPath(service, path);
         if(apiMap == null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(Collections.singletonMap("message", "Bad Request")).build();
+            return Response.status(Response.Status.BAD_REQUEST).entity(
+                    ResponseTransformationUtil.transform(Collections.singletonMap("message", "Bad Request"),
+                            headers.getMediaType() != null ? headers.getMediaType().toString() : MediaType.APPLICATION_JSON,
+                            jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper)
+            ).build();
         }
         val callMode = headers.getRequestHeaders().getFirst(RevolversHttpHeaders.CALL_MODE_HEADER);
         if(Strings.isNullOrEmpty(callMode)) {
