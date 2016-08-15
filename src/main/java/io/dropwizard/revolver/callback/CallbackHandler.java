@@ -49,6 +49,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -58,7 +59,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -82,7 +82,7 @@ public class CallbackHandler {
                 .build(new CacheLoader<CallbackConfigKey, RevolverHttpServiceConfig>() {
                     @Override
                     public RevolverHttpServiceConfig load(CallbackConfigKey key) throws Exception {
-                        return buildConfiguration(key.callbackRequest, key.uri);
+                        return buildConfiguration(key.callbackRequest, key.endpoint);
                     }
                 });
     }
@@ -93,7 +93,7 @@ public class CallbackHandler {
     @ToString(exclude = "callbackRequest")
     @AllArgsConstructor
     public static class CallbackConfigKey {
-        private URI uri;
+        private String endpoint;
         private RevolverCallbackRequest callbackRequest;
     }
 
@@ -121,10 +121,8 @@ public class CallbackHandler {
             switch (uri.getScheme()) {
                 case "https":
                 case "http":
-                    makeCallback(requestId, uri, request);
-                    break;
                 case "ranger":
-                    log.warn("Ranger is not supported yet for request: {}", requestId);
+                    makeCallback(requestId, uri, request);
                     break;
                 default:
                     log.warn("Invalid protocol for request: {}", requestId);
@@ -143,7 +141,7 @@ public class CallbackHandler {
         try {
             final RevolverHttpServiceConfig httpCommandConfig = clientLoadingCache.get(CallbackConfigKey.builder()
                     .callbackRequest(callbackRequest)
-                    .uri(uri)
+                    .endpoint(uri.getScheme() +"://" +uri.getHost() +":" +(uri.getPort() != -1 ? uri.getPort() : ""))
             .build());
             final RevolverHttpCommand httpCommand = getCommand(httpCommandConfig);
             final MultivaluedMap<String, String> requestHeaders = new MultivaluedHashMap<>();
@@ -190,9 +188,10 @@ public class CallbackHandler {
         }
     }
 
-    private RevolverHttpServiceConfig buildConfiguration(final RevolverCallbackRequest callbackRequest, final URI uri) throws MalformedURLException {
+    private RevolverHttpServiceConfig buildConfiguration(final RevolverCallbackRequest callbackRequest, final String endpoint) throws MalformedURLException, URISyntaxException {
         EndpointSpec endpointSpec = null;
         String apiName = "callback";
+        URI uri = new URI(endpoint);
         String serviceName = uri.getHost().replace(".", "-");
         String type = null;
         String method = callbackRequest.getHeaders()
