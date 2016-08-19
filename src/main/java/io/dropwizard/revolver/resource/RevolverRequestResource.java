@@ -73,6 +73,10 @@ public class RevolverRequestResource {
 
     private final CallbackHandler callbackHandler;
 
+    private static final Map<String, String> BAD_REQUEST_RESPONSE = Collections.singletonMap("message", "Bad Request");
+
+    private static final Map<String, String> DUPLICATE_REQUEST_RESPONSE = Collections.singletonMap("message", "Duplicate");
+
     public RevolverRequestResource(final ObjectMapper jsonObjectMapper,
                                    final ObjectMapper msgPackObjectMapper,
                                    final XmlMapper xmlObjectMapper,
@@ -164,7 +168,7 @@ public class RevolverRequestResource {
         val apiMap = RevolverBundle.matchPath(service, path);
         if(apiMap == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity(
-                    ResponseTransformationUtil.transform(Collections.singletonMap("message", "Bad Request"),
+                    ResponseTransformationUtil.transform(BAD_REQUEST_RESPONSE,
                             headers.getMediaType() != null ? headers.getMediaType().toString() : MediaType.APPLICATION_JSON,
                             jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper)
             ).build();
@@ -178,11 +182,19 @@ public class RevolverRequestResource {
                 return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync(), callMode);
             case RevolverHttpCommand.CALL_MODE_CALLBACK:
                 if(Strings.isNullOrEmpty(headers.getHeaderString(RevolversHttpHeaders.CALLBACK_URI_HEADER))) {
-                    return Response.status(Response.Status.BAD_REQUEST).build();
+                    return Response.status(Response.Status.BAD_REQUEST).entity(
+                            ResponseTransformationUtil.transform(BAD_REQUEST_RESPONSE,
+                                    headers.getMediaType() != null ? headers.getMediaType().toString() : MediaType.APPLICATION_JSON,
+                                    jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper)
+                    ).build();
                 }
                 return executeCommandAsync(service, apiMap.getApi(), method, path, headers, uriInfo, body, apiMap.getApi().isAsync(), callMode);
         }
-        return Response.status(Response.Status.BAD_REQUEST).build();
+        return Response.status(Response.Status.BAD_REQUEST).entity(
+                ResponseTransformationUtil.transform(BAD_REQUEST_RESPONSE,
+                        headers.getMediaType() != null ? headers.getMediaType().toString() : MediaType.APPLICATION_JSON,
+                        jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper)
+        ).build();
     }
 
     private Response executeInline(final String service, final RevolverHttpApiConfig api, final RevolverHttpApiConfig.RequestMethod method,
@@ -299,7 +311,7 @@ public class RevolverRequestResource {
         //Short circuit if it is a duplicate request
         if(persistenceProvider.exists(requestId)) {
             return Response.status(Response.Status.NOT_ACCEPTABLE)
-                    .entity(ResponseTransformationUtil.transform(Collections.singletonMap("message", "Duplicate"),
+                    .entity(ResponseTransformationUtil.transform(DUPLICATE_REQUEST_RESPONSE,
                             headers.getMediaType() == null ? MediaType.APPLICATION_JSON : headers.getMediaType().toString(),
                             jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper)).build();
         }
@@ -359,10 +371,9 @@ public class RevolverRequestResource {
                 }
             });
             RevolverAckMessage revolverAckMessage = RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build();
-            byte ackMessage[] = ResponseTransformationUtil.transform(revolverAckMessage,
+            return Response.accepted().entity(ResponseTransformationUtil.transform(revolverAckMessage,
                     headers.getMediaType() == null ? MediaType.APPLICATION_JSON : headers.getMediaType().toString(),
-                    jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper);
-            return Response.accepted().entity(ackMessage).build();
+                    jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper)).build();
         }
     }
 

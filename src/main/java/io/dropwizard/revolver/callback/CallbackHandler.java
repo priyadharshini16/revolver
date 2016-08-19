@@ -139,9 +139,11 @@ public class CallbackHandler {
             return;
         }
         try {
+            String callbackUri = uri.getScheme() +"://" +uri.getHost() +":" +(uri.getPort() != -1 ? uri.getPort() : "");
+            log.info("Callback Request URI: {} | Payload: {}", uri.toURL().toString(), new String(response.getBody()));
             final RevolverHttpServiceConfig httpCommandConfig = clientLoadingCache.get(CallbackConfigKey.builder()
                     .callbackRequest(callbackRequest)
-                    .endpoint(uri.getScheme() +"://" +uri.getHost() +":" +(uri.getPort() != -1 ? uri.getPort() : ""))
+                    .endpoint(callbackUri)
             .build());
             final RevolverHttpCommand httpCommand = getCommand(httpCommandConfig);
             final MultivaluedMap<String, String> requestHeaders = new MultivaluedHashMap<>();
@@ -163,9 +165,9 @@ public class CallbackHandler {
             CompletableFuture<RevolverHttpResponse> httpResponseFuture = httpCommand.executeAsync(httpRequest);
             httpResponseFuture.thenAcceptAsync( httpResponse -> {
                 if (httpResponse.getStatusCode() >= 200 && httpResponse.getStatusCode() <= 210) {
-                    log.debug("Callback success: " + httpResponse.toString());
+                    log.info("Callback success: " + httpResponse.toString());
                 } else {
-                    log.error("Error from callback host: {} | Status Code: {} | Response Body: ", uri.getHost(),
+                    log.error("Error from callback host: {} | Status Code: {} | Response Body: {}", uri.getHost(),
                             httpResponse.getStatusCode(), httpResponse.getBody() != null ? new String(httpResponse.getBody()) : "NONE");
                 }
             });
