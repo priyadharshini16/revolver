@@ -80,7 +80,7 @@ public class RevolverCallbackResource {
                     .build();
             persistenceProvider.saveResponse(requestId, response);
             if(callbackRequest.getMode() != null && callbackRequest.getMode().equals(RevolverHttpCommand.CALL_MODE_CALLBACK) && !Strings.isNullOrEmpty(callbackRequest.getCallbackUri())) {
-                callbackHandler.handle(requestId);
+                callbackHandler.handle(requestId, response);
             }
             return Response.accepted().build();
         } catch(Exception e) {

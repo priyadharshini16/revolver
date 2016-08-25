@@ -352,7 +352,7 @@ public class RevolverRequestResource {
                 persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
             } else {
                 persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
-                saveResponse(requestId, result);
+                saveResponse(requestId, result, callMode);
             }
             return transform(headers, result, api.getApi(), path, method);
         } else {
@@ -361,13 +361,10 @@ public class RevolverRequestResource {
                     persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
                 } else if(result.getStatusCode() == Response.Status.OK.getStatusCode()) {
                     persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
-                    saveResponse(requestId, result);
+                    saveResponse(requestId, result, callMode);
                 } else {
                     persistenceProvider.setRequestState(requestId, RevolverRequestState.ERROR);
-                    saveResponse(requestId, result);
-                }
-                if(callMode != null && callMode.equals(RevolverHttpCommand.CALL_MODE_CALLBACK)) {
-                    callbackHandler.handle(requestId);
+                    saveResponse(requestId, result, callMode);
                 }
             });
             RevolverAckMessage revolverAckMessage = RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build();
@@ -377,13 +374,17 @@ public class RevolverRequestResource {
         }
     }
 
-    private void saveResponse(String requestId, RevolverHttpResponse result) {
+    private void saveResponse(String requestId, RevolverHttpResponse result, final String callMode) {
         try {
-            persistenceProvider.saveResponse(requestId, RevolverCallbackResponse.builder()
+            val response = RevolverCallbackResponse.builder()
                     .body(result.getBody())
                     .headers(result.getHeaders())
                     .statusCode(result.getStatusCode())
-                    .build());
+                    .build();
+            persistenceProvider.saveResponse(requestId, response);
+            if(callMode != null && callMode.equals(RevolverHttpCommand.CALL_MODE_CALLBACK)) {
+                callbackHandler.handle(requestId, response);
+            }
         } catch (Exception e) {
             log.error("Error saving response!", e );
         }

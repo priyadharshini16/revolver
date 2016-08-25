@@ -89,7 +89,7 @@ public class CallbackHandler {
 
     @Data
     @Builder
-    @EqualsAndHashCode (exclude = "callbackRequest")
+    @EqualsAndHashCode(exclude = "callbackRequest")
     @ToString(exclude = "callbackRequest")
     @AllArgsConstructor
     public static class CallbackConfigKey {
@@ -97,7 +97,7 @@ public class CallbackHandler {
         private RevolverCallbackRequest callbackRequest;
     }
 
-    public void handle(final String requestId) {
+    public void handle(final String requestId, RevolverCallbackResponse response) {
         final RevolverCallbackRequest request = persistenceProvider.request(requestId);
         if (request == null) {
             log.warn("Invalid request: {}", requestId);
@@ -106,10 +106,6 @@ public class CallbackHandler {
         RevolverRequestState state = persistenceProvider.requestState(requestId);
         if (state == null) {
             log.warn("Invalid request state: {}", requestId);
-            return;
-        }
-        if (state != RevolverRequestState.RESPONDED) {
-            log.warn("Invalid request state {}: {}", state.name(), requestId);
             return;
         }
         if (Strings.isNullOrEmpty(request.getCallbackUri())) {
@@ -122,48 +118,46 @@ public class CallbackHandler {
                 case "https":
                 case "http":
                 case "ranger":
-                    makeCallback(requestId, uri, request);
+                    makeCallback(requestId, uri, request, response);
                     break;
                 default:
                     log.warn("Invalid protocol for request: {}", requestId);
             }
+            //Save it again for good measure (Overridden because of slow initial api call)
+            persistenceProvider.saveResponse(requestId, response);
         } catch (Exception e) {
             log.error("Invalid callback uri {} for request: {}", request.getCallbackUri(), requestId, e);
         }
     }
 
-    private void makeCallback(final String requestId, final URI uri, final RevolverCallbackRequest callbackRequest) {
-        final RevolverCallbackResponse response = persistenceProvider.response(requestId);
-        if (response == null) {
-            log.warn("Invalid response: {}", requestId);
-            return;
-        }
+    private void makeCallback(final String requestId, final URI uri, final RevolverCallbackRequest callbackRequest,
+                              RevolverCallbackResponse callBackResponse) {
         try {
-            String callbackUri = uri.getScheme() +"://" +uri.getHost() +":" +(uri.getPort() != -1 ? uri.getPort() : "");
-            log.info("Callback Request URI: {} | Payload: {}", uri.toURL().toString(), new String(response.getBody()));
+            String callbackUri = uri.getScheme() + "://" + uri.getHost() + ":" + (uri.getPort() != -1 ? uri.getPort() : "");
+            log.info("Callback Request URI: {} | Payload: {}", uri.toURL().toString(), new String(callBackResponse.getBody()));
             final RevolverHttpServiceConfig httpCommandConfig = clientLoadingCache.get(CallbackConfigKey.builder()
                     .callbackRequest(callbackRequest)
                     .endpoint(callbackUri)
-            .build());
+                    .build());
             final RevolverHttpCommand httpCommand = getCommand(httpCommandConfig);
             final MultivaluedMap<String, String> requestHeaders = new MultivaluedHashMap<>();
-            response.getHeaders().forEach(requestHeaders::put);
+            callBackResponse.getHeaders().forEach(requestHeaders::put);
             //Remove host header
             requestHeaders.remove(HttpHeaders.HOST);
-            requestHeaders.putSingle(RevolversHttpHeaders.CALLBACK_RESPONSE_CODE, String.valueOf(response.getStatusCode()));
+            requestHeaders.putSingle(RevolversHttpHeaders.CALLBACK_RESPONSE_CODE, String.valueOf(callBackResponse.getStatusCode()));
             String method = callbackRequest.getHeaders()
                     .getOrDefault(RevolversHttpHeaders.CALLBACK_METHOD_HEADER, Collections.singletonList("POST")).get(0);
             method = Strings.isNullOrEmpty(method) ? "POST" : method;
             final RevolverHttpRequest httpRequest = RevolverHttpRequest.builder()
                     .path(uri.getRawPath())
                     .api("callback")
-                    .body(response.getBody() == null ? new byte[0] : response.getBody())
+                    .body(callBackResponse.getBody() == null ? new byte[0] : callBackResponse.getBody())
                     .headers(requestHeaders)
                     .method(RevolverHttpApiConfig.RequestMethod.valueOf(method))
                     .service(httpCommandConfig.getService())
                     .build();
             CompletableFuture<RevolverHttpResponse> httpResponseFuture = httpCommand.executeAsync(httpRequest);
-            httpResponseFuture.thenAcceptAsync( httpResponse -> {
+            httpResponseFuture.thenAcceptAsync(httpResponse -> {
                 if (httpResponse.getStatusCode() >= 200 && httpResponse.getStatusCode() <= 210) {
                     log.info("Callback success: " + httpResponse.toString());
                 } else {
@@ -238,7 +232,7 @@ public class CallbackHandler {
                         .runtime(HystrixCommandConfig.builder()
                                 .threadPool(ThreadPoolConfig.builder()
                                         .concurrency(10)
-                                            .timeout(Integer.parseInt(timeout))
+                                        .timeout(Integer.parseInt(timeout))
                                         .build())
                                 .build()).build()).build();
     }
