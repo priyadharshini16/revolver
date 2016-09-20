@@ -27,19 +27,19 @@ import io.dropwizard.revolver.http.auth.TokenAuthConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import okhttp3.*;
+import okhttp3.ConnectionPool;
+import okhttp3.ConnectionSpec;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
 import okhttp3.internal.tls.OkHostnameVerifier;
-import okhttp3.internal.tls.TrustRootIndex;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.net.SocketFactory;
 import javax.net.ssl.*;
 import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -113,10 +113,14 @@ public class RevolverHttpClientFactory {
             }
         }
         if (serviceConfiguration.getConnectionKeepAliveInMillis() <= 0) {
-            builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), 5, TimeUnit.MINUTES));
+            builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), 30, TimeUnit.SECONDS));
         } else {
             builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), serviceConfiguration.getConnectionKeepAliveInMillis(), TimeUnit.MILLISECONDS));
         }
+        builder.retryOnConnectionFailure(true);
+        builder.connectTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
+        builder.readTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
+        builder.writeTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
         builder.connectTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
         return builder.build();
     }
