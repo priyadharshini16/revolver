@@ -55,6 +55,7 @@ public class AerospikeConnectionManager {
         writePolicy.sleepBetweenRetries = config.getSleepBetweenRetries();
         writePolicy.timeout = config.getTimeout();
         writePolicy.expiration = config.getTtl();
+        writePolicy.sendKey = true;
 
         val clientPolicy = new ClientPolicy();
         clientPolicy.maxConnsPerNode = config.getMaxConnectionsPerNode();
