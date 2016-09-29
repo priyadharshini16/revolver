@@ -118,10 +118,10 @@ public class RevolverHttpClientFactory {
             builder.connectionPool(new ConnectionPool(serviceConfiguration.getConnectionPoolSize(), serviceConfiguration.getConnectionKeepAliveInMillis(), TimeUnit.MILLISECONDS));
         }
         builder.retryOnConnectionFailure(true);
-        builder.connectTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
-        builder.readTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
-        builder.writeTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
-        builder.connectTimeout(serviceConfiguration.getRuntime().getThreadPool().getTimeout(), TimeUnit.MILLISECONDS);
+        builder.connectTimeout(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+        builder.readTimeout(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+        builder.writeTimeout(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+        builder.connectTimeout(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
         return builder.build();
     }
 
