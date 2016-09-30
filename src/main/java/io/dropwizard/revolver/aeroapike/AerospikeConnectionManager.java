@@ -39,16 +39,20 @@ public class AerospikeConnectionManager {
 
     private static AerospikeMailBoxConfig config;
 
+    public static WritePolicy writePolicy;
+
+    public static Policy readPolicy;
+
     public static void init(AerospikeMailBoxConfig aerospikeConfig) {
         config = aerospikeConfig;
-        val readPolicy = new Policy();
+        readPolicy = new Policy();
         readPolicy.maxRetries = config.getRetries();
         readPolicy.consistencyLevel = ConsistencyLevel.CONSISTENCY_ONE;
         readPolicy.replica = Replica.RANDOM;
         readPolicy.sleepBetweenRetries = config.getSleepBetweenRetries();
         readPolicy.timeout = config.getTimeout();
 
-        val writePolicy = new WritePolicy();
+        writePolicy = new WritePolicy();
         writePolicy.maxRetries = config.getRetries();
         writePolicy.consistencyLevel = ConsistencyLevel.CONSISTENCY_ALL;
         writePolicy.replica = Replica.MASTER;
