@@ -181,7 +181,8 @@ public class RevolverServiceResolver {
             }
             final SimpleShardedServiceFinder<ShardInfo> finder = this.serviceFinders.get(rangerEndpointSpecification.getService()).getShardFinder();
             final ServiceNode<ShardInfo> node = finder.get(ShardInfo.builder().environment(rangerEndpointSpecification.getEnvironment()).build());
-            if (node != null) {
+            //Get only the nodes that are healthy
+            if (node != null && node.getHealthcheckStatus() == HealthcheckStatus.healthy) {
                 this.endpoint = Endpoint.builder().host(node.getHost()).port(node.getPort()).build();
             }
         }
