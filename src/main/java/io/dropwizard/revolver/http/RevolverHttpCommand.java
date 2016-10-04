@@ -61,6 +61,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
 
     public static final String CALL_MODE_POLLING = "POLLING";
     public static final String CALL_MODE_CALLBACK = "CALLBACK";
+    public static final String CALL_MODE_CALLBACK_SYNC = "CALLBACK_SYNC";
 
     private final RevolverServiceResolver serviceResolver;
     private final OkHttpClient client;

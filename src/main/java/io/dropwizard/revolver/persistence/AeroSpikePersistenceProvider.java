@@ -21,6 +21,7 @@ import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
 import com.aerospike.client.Operation;
 import com.aerospike.client.Record;
+import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.RecordSet;
@@ -96,6 +97,33 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     public boolean exists(String requestId) {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
         return AerospikeConnectionManager.getClient().exists(AerospikeConnectionManager.readPolicy, key);
+    }
+
+    @Override
+    public void saveRequest(String requestId, String mailboxId, RevolverCallbackRequest request, int ttl) throws Exception {
+        final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
+        try {
+            final Bin service = new Bin(BinNames.SERVICE, request.getService());
+            final Bin api = new Bin(BinNames.API, request.getApi());
+            final Bin mode = new Bin(BinNames.MODE, request.getMode().toUpperCase());
+            final Bin method = new Bin(BinNames.METHOD, Strings.isNullOrEmpty(request.getMethod()) ? null : request.getMethod().toUpperCase());
+            final Bin path = new Bin(BinNames.PATH, request.getPath());
+            final Bin mailBoxId = new Bin(BinNames.MAILBOX_ID, mailboxId == null ? "NONE" : mailboxId);
+            final Bin queryParams = new Bin(BinNames.QUERY_PARAMS, objectMapper.writeValueAsString(request.getQueryParams()));
+            final Bin callbackUri = new Bin(BinNames.CALLBACK_URI, request.getCallbackUri() != null ? request.getCallbackUri() : null);
+            final Bin requestHeaders = new Bin(BinNames.REQUEST_HEADERS, objectMapper.writeValueAsString(request.getHeaders()));
+            final Bin requestBody = new Bin(BinNames.REQUEST_BODY, request.getBody());
+            final Bin requestTime = new Bin(BinNames.REQUEST_TIME, Instant.now().toEpochMilli());
+            final Bin created = new Bin(BinNames.CREATED, Instant.now().toEpochMilli());
+            final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
+            final Bin state = new Bin(BinNames.STATE, RevolverRequestState.RECEIVED.name());
+            WritePolicy wp = ttl == 0 ? AerospikeConnectionManager.writePolicy : AerospikeConnectionManager.getWritePolicy(ttl);
+            AerospikeConnectionManager.getClient().put(wp, key,
+                    service, api, mode, method, path, mailBoxId, queryParams, callbackUri, requestHeaders, requestBody, requestTime,
+                    created, updated, state);
+        } catch (JsonProcessingException e) {
+            log.warn("Error encoding request", e);
+        }
     }
 
     @Override
