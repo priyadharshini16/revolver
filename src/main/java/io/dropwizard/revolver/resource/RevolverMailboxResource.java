@@ -40,9 +40,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author phaneesh
@@ -64,9 +62,16 @@ public class RevolverMailboxResource {
 
     private ObjectMapper msgPackObjectMapper;
 
-    private static final Map<String, String> notFound = Collections.singletonMap("message", "Request not found");
-    private static final Map<String, String> error = Collections.singletonMap("message", "Server error");
+    private static final RevolverException NOT_FOUND_ERROR = RevolverException.builder()
+            .status(Response.Status.NOT_FOUND.getStatusCode())
+            .message("Not found")
+            .errorCode("R002")
+            .build();
 
+    private static final RevolverException SERVER_ERROR = RevolverException.builder()
+            .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
+            .errorCode("R001")
+            .message("Oops! Something went wrong!").build();
 
     @Path("/v1/request/status/{requestId}")
     @GET
@@ -76,18 +81,14 @@ public class RevolverMailboxResource {
     public Response requestStatus(@PathParam("requestId") final String requestId, @Context final HttpHeaders headers) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
-            if(state == null) {
-                throw RevolverException.builder()
-                        .status(Response.Status.NOT_FOUND.getStatusCode())
-                        .message("Not found")
-                        .errorCode("R002")
-                        .build();
+            if (state == null) {
+                throw NOT_FOUND_ERROR;
             }
             RevolverRequestStateResponse response = RevolverRequestStateResponse.builder()
                     .requestId(requestId)
                     .state(state.name())
                     .build();
-            if(headers.getAcceptableMediaTypes().size() == 0) {
+            if (headers.getAcceptableMediaTypes().size() == 0) {
                 return Response.ok(ResponseTransformationUtil.transform(response,
                         MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
                         MediaType.APPLICATION_JSON).build();
@@ -97,10 +98,7 @@ public class RevolverMailboxResource {
                     headers.getAcceptableMediaTypes().get(0).toString()).build();
         } catch (Exception e) {
             log.error("Error getting request state", e);
-            throw RevolverException.builder()
-                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
-                    .errorCode("R001")
-            .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+            throw SERVER_ERROR;
         }
     }
 
@@ -112,12 +110,8 @@ public class RevolverMailboxResource {
     public Response ack(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverRequestState state = persistenceProvider.requestState(requestId);
-            if(state == null) {
-                throw RevolverException.builder()
-                        .status(Response.Status.NOT_FOUND.getStatusCode())
-                        .message("Not found")
-                        .errorCode("R002")
-                        .build();
+            if (state == null) {
+                throw NOT_FOUND_ERROR;
             }
             switch (state) {
                 case RESPONDED:
@@ -129,10 +123,7 @@ public class RevolverMailboxResource {
             }
         } catch (Exception e) {
             log.error("Error getting request state", e);
-            throw RevolverException.builder()
-                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
-                    .errorCode("R001")
-                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+            throw SERVER_ERROR;
         }
     }
 
@@ -144,14 +135,10 @@ public class RevolverMailboxResource {
     public Response request(@PathParam("requestId") final String requestId, @Context final HttpHeaders headers) throws RevolverException {
         try {
             RevolverCallbackRequest callbackRequest = persistenceProvider.request(requestId);
-            if(callbackRequest == null) {
-                throw RevolverException.builder()
-                        .status(Response.Status.NOT_FOUND.getStatusCode())
-                        .message("Not found")
-                        .errorCode("R002")
-                        .build();
+            if (callbackRequest == null) {
+                throw NOT_FOUND_ERROR;
             }
-            if(headers.getAcceptableMediaTypes().size() == 0) {
+            if (headers.getAcceptableMediaTypes().size() == 0) {
                 return Response.ok(ResponseTransformationUtil.transform(callbackRequest,
                         MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
                         MediaType.APPLICATION_JSON).build();
@@ -161,10 +148,7 @@ public class RevolverMailboxResource {
                     headers.getAcceptableMediaTypes().get(0).toString()).build();
         } catch (Exception e) {
             log.error("Error getting request", e);
-            throw RevolverException.builder()
-                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
-                    .errorCode("R001")
-                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+            throw SERVER_ERROR;
         }
     }
 
@@ -176,23 +160,16 @@ public class RevolverMailboxResource {
     public Response response(@PathParam("requestId") final String requestId) throws RevolverException {
         try {
             RevolverCallbackResponse callbackResponse = persistenceProvider.response(requestId);
-            if(callbackResponse == null) {
-                throw RevolverException.builder()
-                        .status(Response.Status.NOT_FOUND.getStatusCode())
-                        .message("Not found")
-                        .errorCode("R002")
-                        .build();
+            if (callbackResponse == null) {
+                throw NOT_FOUND_ERROR;
             }
             val response = Response.status(callbackResponse.getStatusCode())
                     .entity(callbackResponse.getBody());
-            callbackResponse.getHeaders().forEach( (k,v) -> v.forEach(h -> response.header(k, h)));
+            callbackResponse.getHeaders().forEach((k, v) -> v.forEach(h -> response.header(k, h)));
             return response.build();
         } catch (Exception e) {
             log.error("Error getting response", e);
-            throw RevolverException.builder()
-                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
-                    .errorCode("R001")
-                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+            throw SERVER_ERROR;
         }
     }
 
@@ -204,14 +181,10 @@ public class RevolverMailboxResource {
     public Response requests(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId, @Context final HttpHeaders headers) throws RevolverException {
         try {
             List<RevolverCallbackRequest> callbackRequests = persistenceProvider.requests(mailboxId);
-            if(callbackRequests == null) {
-                throw RevolverException.builder()
-                        .status(Response.Status.NOT_FOUND.getStatusCode())
-                        .message("Not found")
-                        .errorCode("R002")
-                        .build();
+            if (callbackRequests == null) {
+                throw NOT_FOUND_ERROR;
             }
-            if(headers.getAcceptableMediaTypes().size() == 0) {
+            if (headers.getAcceptableMediaTypes().size() == 0) {
                 return Response.ok(ResponseTransformationUtil.transform(callbackRequests,
                         MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
                         MediaType.APPLICATION_JSON).build();
@@ -221,10 +194,7 @@ public class RevolverMailboxResource {
                     headers.getAcceptableMediaTypes().get(0).toString()).build();
         } catch (Exception e) {
             log.error("Error getting requests", e);
-            throw RevolverException.builder()
-                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
-                    .errorCode("R001")
-                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
+            throw SERVER_ERROR;
 
         }
     }
@@ -236,7 +206,7 @@ public class RevolverMailboxResource {
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
     public Response responses(@HeaderParam(RevolversHttpHeaders.MAILBOX_ID_HEADER) final String mailboxId, @Context final HttpHeaders headers) throws RevolverException {
         try {
-            if(Strings.isNullOrEmpty(mailboxId)) {
+            if (Strings.isNullOrEmpty(mailboxId)) {
                 throw RevolverException.builder()
                         .status(Response.Status.BAD_REQUEST.getStatusCode())
                         .message("Invalid Mailbox Id")
@@ -244,14 +214,10 @@ public class RevolverMailboxResource {
                         .build();
             }
             List<RevolverCallbackResponse> callbackResponses = persistenceProvider.responses(mailboxId);
-            if(callbackResponses == null) {
-                throw RevolverException.builder()
-                        .status(Response.Status.NOT_FOUND.getStatusCode())
-                        .message("Not found")
-                        .errorCode("R002")
-                        .build();
+            if (callbackResponses == null) {
+                throw NOT_FOUND_ERROR;
             }
-            if(headers.getAcceptableMediaTypes().size() == 0) {
+            if (headers.getAcceptableMediaTypes().size() == 0) {
                 return Response.ok(ResponseTransformationUtil.transform(callbackResponses,
                         MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
                         MediaType.APPLICATION_JSON).build();
@@ -276,37 +242,33 @@ public class RevolverMailboxResource {
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML, MediaType.TEXT_HTML})
     public Response persistRequest(@Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws RevolverException {
         try {
-        val requestId = headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
-        val mailBoxId = headers.getHeaderString(RevolversHttpHeaders.MAILBOX_ID_HEADER);
-        persistenceProvider.saveRequest(requestId, mailBoxId,
-                RevolverCallbackRequest.builder()
-                        .api("persist")
-                        .mode("POLLING")
-                        .callbackUri(null)
-                        .method("POST")
-                        .service("mailbox")
-                        .path(uriInfo.getPath())
-                        .headers(headers.getRequestHeaders())
-                        .queryParams(uriInfo.getQueryParameters())
-                        .body(body)
-                        .build()
-        );
-        RevolverAckMessage response = RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build();
-        if(headers.getAcceptableMediaTypes().size() == 0) {
+            val requestId = headers.getHeaderString(RevolversHttpHeaders.REQUEST_ID_HEADER);
+            val mailBoxId = headers.getHeaderString(RevolversHttpHeaders.MAILBOX_ID_HEADER);
+            persistenceProvider.saveRequest(requestId, mailBoxId,
+                    RevolverCallbackRequest.builder()
+                            .api("persist")
+                            .mode("POLLING")
+                            .callbackUri(null)
+                            .method("POST")
+                            .service("mailbox")
+                            .path(uriInfo.getPath())
+                            .headers(headers.getRequestHeaders())
+                            .queryParams(uriInfo.getQueryParameters())
+                            .body(body)
+                            .build()
+            );
+            RevolverAckMessage response = RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build();
+            if (headers.getAcceptableMediaTypes().size() == 0) {
+                return Response.ok(ResponseTransformationUtil.transform(response,
+                        MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                        MediaType.APPLICATION_JSON).build();
+            }
             return Response.ok(ResponseTransformationUtil.transform(response,
-                    MediaType.APPLICATION_JSON, jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
-                    MediaType.APPLICATION_JSON).build();
-        }
-        return Response.ok(ResponseTransformationUtil.transform(response,
-                headers.getAcceptableMediaTypes().get(0).toString(), jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
-                headers.getAcceptableMediaTypes().get(0).toString()).build();
+                    headers.getAcceptableMediaTypes().get(0).toString(), jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper),
+                    headers.getAcceptableMediaTypes().get(0).toString()).build();
         } catch (Exception e) {
             log.error("Error getting responses", e);
-            throw RevolverException.builder()
-                    .status(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())
-                    .errorCode("R001")
-                    .message(ExceptionUtils.getRootCause(e).getMessage()).build();
-
+            throw SERVER_ERROR;
         }
     }
 }

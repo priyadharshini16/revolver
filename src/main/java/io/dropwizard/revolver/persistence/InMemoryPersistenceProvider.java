@@ -56,6 +56,14 @@ public class InMemoryPersistenceProvider implements PersistenceProvider {
     }
 
     @Override
+    public void saveRequest(final String requestId, final String mailBoxId, final RevolverCallbackRequest request, final int ttl) {
+        callbackRequests.put(requestId, request);
+        if(!StringUtils.isBlank(mailBoxId))
+            mailbox.add(mailBoxId, requestId);
+        callbackStates.put(requestId, RevolverRequestState.RECEIVED);
+    }
+
+    @Override
     public void setRequestState(final String requestId, final RevolverRequestState state) {
         callbackStates.put(requestId, state);
     }

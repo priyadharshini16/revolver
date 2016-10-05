@@ -21,6 +21,7 @@ import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
 import com.aerospike.client.Operation;
 import com.aerospike.client.Record;
+import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.RecordSet;
@@ -95,7 +96,34 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     @Override
     public boolean exists(String requestId) {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
-        return AerospikeConnectionManager.getClient().exists(null, key);
+        return AerospikeConnectionManager.getClient().exists(AerospikeConnectionManager.readPolicy, key);
+    }
+
+    @Override
+    public void saveRequest(String requestId, String mailboxId, RevolverCallbackRequest request, int ttl) throws Exception {
+        final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
+        try {
+            final Bin service = new Bin(BinNames.SERVICE, request.getService());
+            final Bin api = new Bin(BinNames.API, request.getApi());
+            final Bin mode = new Bin(BinNames.MODE, request.getMode().toUpperCase());
+            final Bin method = new Bin(BinNames.METHOD, Strings.isNullOrEmpty(request.getMethod()) ? null : request.getMethod().toUpperCase());
+            final Bin path = new Bin(BinNames.PATH, request.getPath());
+            final Bin mailBoxId = new Bin(BinNames.MAILBOX_ID, mailboxId == null ? "NONE" : mailboxId);
+            final Bin queryParams = new Bin(BinNames.QUERY_PARAMS, objectMapper.writeValueAsString(request.getQueryParams()));
+            final Bin callbackUri = new Bin(BinNames.CALLBACK_URI, request.getCallbackUri() != null ? request.getCallbackUri() : null);
+            final Bin requestHeaders = new Bin(BinNames.REQUEST_HEADERS, objectMapper.writeValueAsString(request.getHeaders()));
+            final Bin requestBody = new Bin(BinNames.REQUEST_BODY, request.getBody());
+            final Bin requestTime = new Bin(BinNames.REQUEST_TIME, Instant.now().toEpochMilli());
+            final Bin created = new Bin(BinNames.CREATED, Instant.now().toEpochMilli());
+            final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
+            final Bin state = new Bin(BinNames.STATE, RevolverRequestState.RECEIVED.name());
+            WritePolicy wp = ttl == 0 ? AerospikeConnectionManager.writePolicy : AerospikeConnectionManager.getWritePolicy(ttl);
+            AerospikeConnectionManager.getClient().put(wp, key,
+                    service, api, mode, method, path, mailBoxId, queryParams, callbackUri, requestHeaders, requestBody, requestTime,
+                    created, updated, state);
+        } catch (JsonProcessingException e) {
+            log.warn("Error encoding request", e);
+        }
     }
 
     @Override
@@ -116,7 +144,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
             final Bin created = new Bin(BinNames.CREATED, Instant.now().toEpochMilli());
             final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
             final Bin state = new Bin(BinNames.STATE, RevolverRequestState.RECEIVED.name());
-            AerospikeConnectionManager.getClient().put(null, key,
+            AerospikeConnectionManager.getClient().put(AerospikeConnectionManager.writePolicy, key,
                     service, api, mode, method, path, mailBoxId, queryParams, callbackUri, requestHeaders, requestBody, requestTime,
                     created, updated, state);
         } catch (JsonProcessingException e) {
@@ -127,7 +155,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     @Override
     public void setRequestState(String requestId, RevolverRequestState state) {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
-        final Record record = AerospikeConnectionManager.getClient().get(null, key, BinNames.STATE);
+        final Record record = AerospikeConnectionManager.getClient().get(AerospikeConnectionManager.readPolicy, key, BinNames.STATE);
         final RevolverRequestState requestState = RevolverRequestState.valueOf(record.getString(BinNames.STATE));
         switch (requestState) {
             case RESPONDED:
@@ -135,7 +163,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
             default:
                 final Bin binState = new Bin(BinNames.STATE, state.name());
                 final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
-                AerospikeConnectionManager.getClient().operate(null, key,
+                AerospikeConnectionManager.getClient().operate(AerospikeConnectionManager.writePolicy, key,
                         Operation.put(binState), Operation.put(updated));
         }
     }
@@ -150,7 +178,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
             final Bin responseStatusCode = new Bin(BinNames.RESPONSE_STATUS_CODE, response.getStatusCode());
             final Bin responseTime = new Bin(BinNames.RESPONSE_TIME, Instant.now().toEpochMilli());
             final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
-            AerospikeConnectionManager.getClient().operate(null, key,
+            AerospikeConnectionManager.getClient().operate(AerospikeConnectionManager.writePolicy, key,
                     Operation.put(state),
                     Operation.put(responseHeaders),
                     Operation.put(responseBody),
@@ -165,7 +193,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     @Override
     public RevolverRequestState requestState(String requestId) {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
-        final Record record = AerospikeConnectionManager.getClient().get(null, key, BinNames.STATE);
+        final Record record = AerospikeConnectionManager.getClient().get(AerospikeConnectionManager.readPolicy, key, BinNames.STATE);
         if(record == null) {
             return RevolverRequestState.UNKNOWN;
         }
@@ -175,7 +203,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     @Override
     public RevolverCallbackResponse response(String requestId) {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
-        final Record record = AerospikeConnectionManager.getClient().get(null, key);
+        final Record record = AerospikeConnectionManager.getClient().get(AerospikeConnectionManager.readPolicy, key);
         if(record == null) {
             return null;
         }
@@ -201,7 +229,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     @Override
     public RevolverCallbackRequest request(String requestId) {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
-        final Record record = AerospikeConnectionManager.getClient().get(null, key);
+        final Record record = AerospikeConnectionManager.getClient().get(AerospikeConnectionManager.readPolicy, key);
         if(record == null) {
             return null;
         }

@@ -32,6 +32,8 @@ public interface PersistenceProvider {
 
     void saveRequest(final String requestId, final String mailboxId, final RevolverCallbackRequest request);
 
+    void saveRequest(final String requestId, final String mailboxId, final RevolverCallbackRequest request, final int ttl) throws Exception;
+
     void setRequestState(final String requestId, RevolverRequestState state);
 
     void saveResponse(final String requestId, RevolverCallbackResponse response);

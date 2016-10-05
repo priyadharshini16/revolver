@@ -79,8 +79,8 @@ public class RevolverCallbackResource {
                     .statusCode(responseCode != null ? Integer.parseInt(responseCode) : Response.Status.OK.getStatusCode())
                     .build();
             persistenceProvider.saveResponse(requestId, response);
-            if(callbackRequest.getMode() != null && callbackRequest.getMode().equals(RevolverHttpCommand.CALL_MODE_CALLBACK) && !Strings.isNullOrEmpty(callbackRequest.getCallbackUri())) {
-                callbackHandler.handle(requestId);
+            if(callbackRequest.getMode() != null && (callbackRequest.getMode().equals(RevolverHttpCommand.CALL_MODE_CALLBACK) || callbackRequest.getMode().equals(RevolverHttpCommand.CALL_MODE_CALLBACK_SYNC)) && !Strings.isNullOrEmpty(callbackRequest.getCallbackUri())) {
+                callbackHandler.handle(requestId, response);
             }
             return Response.accepted().build();
         } catch(Exception e) {

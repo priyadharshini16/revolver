@@ -49,6 +49,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -58,7 +59,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -82,22 +82,22 @@ public class CallbackHandler {
                 .build(new CacheLoader<CallbackConfigKey, RevolverHttpServiceConfig>() {
                     @Override
                     public RevolverHttpServiceConfig load(CallbackConfigKey key) throws Exception {
-                        return buildConfiguration(key.callbackRequest, key.uri);
+                        return buildConfiguration(key.callbackRequest, key.endpoint);
                     }
                 });
     }
 
     @Data
     @Builder
-    @EqualsAndHashCode (exclude = "callbackRequest")
+    @EqualsAndHashCode(exclude = "callbackRequest")
     @ToString(exclude = "callbackRequest")
     @AllArgsConstructor
     public static class CallbackConfigKey {
-        private URI uri;
+        private String endpoint;
         private RevolverCallbackRequest callbackRequest;
     }
 
-    public void handle(final String requestId) {
+    public void handle(final String requestId, RevolverCallbackResponse response) {
         final RevolverCallbackRequest request = persistenceProvider.request(requestId);
         if (request == null) {
             log.warn("Invalid request: {}", requestId);
@@ -106,10 +106,6 @@ public class CallbackHandler {
         RevolverRequestState state = persistenceProvider.requestState(requestId);
         if (state == null) {
             log.warn("Invalid request state: {}", requestId);
-            return;
-        }
-        if (state != RevolverRequestState.RESPONDED) {
-            log.warn("Invalid request state {}: {}", state.name(), requestId);
             return;
         }
         if (Strings.isNullOrEmpty(request.getCallbackUri())) {
@@ -121,53 +117,51 @@ public class CallbackHandler {
             switch (uri.getScheme()) {
                 case "https":
                 case "http":
-                    makeCallback(requestId, uri, request);
-                    break;
                 case "ranger":
-                    log.warn("Ranger is not supported yet for request: {}", requestId);
+                    makeCallback(requestId, uri, request, response);
                     break;
                 default:
                     log.warn("Invalid protocol for request: {}", requestId);
             }
+            //Save it again for good measure (Overridden because of slow initial api call)
+            persistenceProvider.saveResponse(requestId, response);
         } catch (Exception e) {
             log.error("Invalid callback uri {} for request: {}", request.getCallbackUri(), requestId, e);
         }
     }
 
-    private void makeCallback(final String requestId, final URI uri, final RevolverCallbackRequest callbackRequest) {
-        final RevolverCallbackResponse response = persistenceProvider.response(requestId);
-        if (response == null) {
-            log.warn("Invalid response: {}", requestId);
-            return;
-        }
+    private void makeCallback(final String requestId, final URI uri, final RevolverCallbackRequest callbackRequest,
+                              RevolverCallbackResponse callBackResponse) {
         try {
+            String callbackUri = uri.getScheme() + "://" + uri.getHost() + ":" + (uri.getPort() != -1 ? uri.getPort() : "");
+            log.info("Callback Request URI: {} | Payload: {}", uri.toURL().toString(), new String(callBackResponse.getBody()));
             final RevolverHttpServiceConfig httpCommandConfig = clientLoadingCache.get(CallbackConfigKey.builder()
                     .callbackRequest(callbackRequest)
-                    .uri(uri)
-            .build());
+                    .endpoint(callbackUri)
+                    .build());
             final RevolverHttpCommand httpCommand = getCommand(httpCommandConfig);
             final MultivaluedMap<String, String> requestHeaders = new MultivaluedHashMap<>();
-            response.getHeaders().forEach(requestHeaders::put);
+            callBackResponse.getHeaders().forEach(requestHeaders::put);
             //Remove host header
             requestHeaders.remove(HttpHeaders.HOST);
-            requestHeaders.putSingle(RevolversHttpHeaders.CALLBACK_RESPONSE_CODE, String.valueOf(response.getStatusCode()));
+            requestHeaders.putSingle(RevolversHttpHeaders.CALLBACK_RESPONSE_CODE, String.valueOf(callBackResponse.getStatusCode()));
             String method = callbackRequest.getHeaders()
                     .getOrDefault(RevolversHttpHeaders.CALLBACK_METHOD_HEADER, Collections.singletonList("POST")).get(0);
             method = Strings.isNullOrEmpty(method) ? "POST" : method;
             final RevolverHttpRequest httpRequest = RevolverHttpRequest.builder()
                     .path(uri.getRawPath())
                     .api("callback")
-                    .body(response.getBody() == null ? new byte[0] : response.getBody())
+                    .body(callBackResponse.getBody() == null ? new byte[0] : callBackResponse.getBody())
                     .headers(requestHeaders)
                     .method(RevolverHttpApiConfig.RequestMethod.valueOf(method))
                     .service(httpCommandConfig.getService())
                     .build();
             CompletableFuture<RevolverHttpResponse> httpResponseFuture = httpCommand.executeAsync(httpRequest);
-            httpResponseFuture.thenAcceptAsync( httpResponse -> {
+            httpResponseFuture.thenAcceptAsync(httpResponse -> {
                 if (httpResponse.getStatusCode() >= 200 && httpResponse.getStatusCode() <= 210) {
-                    log.debug("Callback success: " + httpResponse.toString());
+                    log.info("Callback success: " + httpResponse.toString());
                 } else {
-                    log.error("Error from callback host: {} | Status Code: {} | Response Body: ", uri.getHost(),
+                    log.error("Error from callback host: {} | Status Code: {} | Response Body: {}", uri.getHost(),
                             httpResponse.getStatusCode(), httpResponse.getBody() != null ? new String(httpResponse.getBody()) : "NONE");
                 }
             });
@@ -190,9 +184,10 @@ public class CallbackHandler {
         }
     }
 
-    private RevolverHttpServiceConfig buildConfiguration(final RevolverCallbackRequest callbackRequest, final URI uri) throws MalformedURLException {
+    private RevolverHttpServiceConfig buildConfiguration(final RevolverCallbackRequest callbackRequest, final String endpoint) throws MalformedURLException, URISyntaxException {
         EndpointSpec endpointSpec = null;
         String apiName = "callback";
+        URI uri = new URI(endpoint);
         String serviceName = uri.getHost().replace(".", "-");
         String type = null;
         String method = callbackRequest.getHeaders()
@@ -237,7 +232,7 @@ public class CallbackHandler {
                         .runtime(HystrixCommandConfig.builder()
                                 .threadPool(ThreadPoolConfig.builder()
                                         .concurrency(10)
-                                            .timeout(Integer.parseInt(timeout))
+                                        .timeout(Integer.parseInt(timeout))
                                         .build())
                                 .build()).build()).build();
     }

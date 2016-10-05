@@ -25,6 +25,7 @@ import io.dropwizard.revolver.core.tracing.TraceCollector;
 import io.dropwizard.revolver.core.util.RevolverCommandHelper;
 import io.dropwizard.revolver.discovery.RevolverServiceResolver;
 import io.dropwizard.revolver.discovery.model.Endpoint;
+import io.dropwizard.revolver.exception.RevolverException;
 import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import io.dropwizard.revolver.http.model.RevolverHttpRequest;
@@ -60,6 +61,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
 
     public static final String CALL_MODE_POLLING = "POLLING";
     public static final String CALL_MODE_CALLBACK = "CALLBACK";
+    public static final String CALL_MODE_CALLBACK_SYNC = "CALLBACK_SYNC";
 
     private final RevolverServiceResolver serviceResolver;
     private final OkHttpClient client;
@@ -127,7 +129,7 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
     private RevolverHttpResponse executeRequest(final RevolverHttpApiConfig apiConfiguration, final Request request, final boolean readBody) throws Exception {
         try {
             val response = client.newCall(request).execute();
-            return this.getHttpResponse(apiConfiguration, response, readBody);
+            return getHttpResponse(apiConfiguration, response, readBody);
         } catch (Exception e) {
             log.error("Error running HTTP GET call: ", e);
             throw e;
@@ -137,8 +139,10 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
     private RevolverHttpResponse doGet(final RevolverHttpRequest request) throws Exception {
         val apiConfiguration = this.getApiConfigurations().get(request.getApi());
         val endpoint = this.serviceResolver.resolve((this.getServiceConfiguration()).getEndpoint());
+        if(endpoint == null) {
+            throw new RevolverException(503, "R999", "Service [" +request.getPath() +"] Unavailable");
+        }
         val url = generateURI(request, apiConfiguration, endpoint);
-
         val httpRequest = new Request.Builder()
                 .url(url);
         httpRequest.get();
@@ -152,6 +156,9 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
     private RevolverHttpResponse doOptions(final RevolverHttpRequest request) throws Exception {
         val apiConfiguration = this.getApiConfigurations().get(request.getApi());
         val endpoint = this.serviceResolver.resolve((this.getServiceConfiguration()).getEndpoint());
+        if(endpoint == null) {
+            throw new RevolverException(503, "R999", "Service [" +request.getPath() +"] Unavailable");
+        }
         val url = generateURI(request, apiConfiguration, endpoint);
         val httpRequest = new Request.Builder()
                 .url(url);
@@ -166,6 +173,9 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
     private RevolverHttpResponse doHead(final RevolverHttpRequest request) throws Exception {
         val apiConfiguration = this.getApiConfigurations().get(request.getApi());
         val endpoint = this.serviceResolver.resolve((this.getServiceConfiguration()).getEndpoint());
+        if(endpoint == null) {
+            throw new RevolverException(503, "R999", "Service [" +request.getPath() +"] Unavailable");
+        }
         val url = generateURI(request, apiConfiguration, endpoint);
         val httpRequest = new Request.Builder()
                 .url(url);
@@ -180,6 +190,9 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
     private RevolverHttpResponse doDelete(final RevolverHttpRequest request) throws Exception {
         val apiConfiguration = this.getApiConfigurations().get(request.getApi());
         val endpoint = this.serviceResolver.resolve((this.getServiceConfiguration()).getEndpoint());
+        if(endpoint == null) {
+            throw new RevolverException(503, "R999", "Service [" +request.getPath() +"] Unavailable");
+        }
         val url = generateURI(request, apiConfiguration, endpoint);
         val httpRequest = new Request.Builder()
                 .url(url);
@@ -194,6 +207,9 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
     private RevolverHttpResponse doPatch(final RevolverHttpRequest request) throws Exception {
         val apiConfiguration = this.getApiConfigurations().get(request.getApi());
         val endpoint = this.serviceResolver.resolve((this.getServiceConfiguration()).getEndpoint());
+        if(endpoint == null) {
+            throw new RevolverException(503, "R999", "Service [" +request.getPath() +"] Unavailable");
+        }
         val url = generateURI(request, apiConfiguration, endpoint);
         val httpRequest = new Request.Builder()
                 .url(url);
@@ -215,6 +231,9 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
     private RevolverHttpResponse doPost(final RevolverHttpRequest request) throws Exception {
         val apiConfiguration = this.getApiConfigurations().get(request.getApi());
         val endpoint = this.serviceResolver.resolve((this.getServiceConfiguration()).getEndpoint());
+        if(endpoint == null) {
+            throw new RevolverException(503, "R999", "Service [" +request.getPath() +"] Unavailable");
+        }
         val url = generateURI(request, apiConfiguration, endpoint);
         val httpRequest = new Request.Builder()
                 .url(url);
@@ -239,6 +258,9 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
     private RevolverHttpResponse doPut(final RevolverHttpRequest request) throws Exception {
         val apiConfiguration = this.getApiConfigurations().get(request.getApi());
         val endpoint = this.serviceResolver.resolve((this.getServiceConfiguration()).getEndpoint());
+        if(endpoint == null) {
+            throw new RevolverException(503, "R999", "Service [" +request.getPath() +"] Unavailable");
+        }
         val url = generateURI(request, apiConfiguration, endpoint);
         val httpRequest = new Request.Builder()
                 .url(url);

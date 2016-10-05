@@ -49,7 +49,7 @@ public class RevolverHttpServiceConfig extends RevolverServiceConfig {
     private Set<RevolverHttpApiConfig> apis;
     private boolean trackingHeaders;
     private boolean compression;
-    private int connectionKeepAliveInMillis = 60000;
+    private int connectionKeepAliveInMillis = 30000;
 
     @Builder
     public RevolverHttpServiceConfig(final String type, final String service, final EndpointSpec enpoint, final int connectionPoolSize,

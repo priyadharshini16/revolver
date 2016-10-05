@@ -22,11 +22,16 @@ import com.aerospike.client.Host;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.policy.*;
 import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import io.dropwizard.revolver.core.config.AerospikeMailBoxConfig;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
@@ -39,27 +44,56 @@ public class AerospikeConnectionManager {
 
     private static AerospikeMailBoxConfig config;
 
+    public static WritePolicy writePolicy;
+
+    public static Policy readPolicy;
+
+    private static LoadingCache<Integer, WritePolicy> writePolicyCache = CacheBuilder.newBuilder()
+            .build(new CacheLoader<Integer, WritePolicy>() {
+                @Override
+                public WritePolicy load(Integer key) throws Exception {
+                    WritePolicy wp = new WritePolicy();
+                    wp.maxRetries = config.getRetries();
+                    wp.consistencyLevel = ConsistencyLevel.CONSISTENCY_ALL;
+                    wp.replica = Replica.MASTER_PROLES;
+                    wp.sleepBetweenRetries = config.getSleepBetweenRetries();
+                    wp.commitLevel = CommitLevel.COMMIT_ALL;
+                    wp.timeout = config.getTimeout();
+                    wp.sendKey = true;
+                    wp.expiration = key;
+                    return wp;
+                }
+            });
+
     public static void init(AerospikeMailBoxConfig aerospikeConfig) {
         config = aerospikeConfig;
-        val readPolicy = new Policy();
+
+        readPolicy = new Policy();
         readPolicy.maxRetries = config.getRetries();
         readPolicy.consistencyLevel = ConsistencyLevel.CONSISTENCY_ONE;
-        readPolicy.replica = Replica.RANDOM;
+        readPolicy.replica = Replica.MASTER_PROLES;
         readPolicy.sleepBetweenRetries = config.getSleepBetweenRetries();
         readPolicy.timeout = config.getTimeout();
+        readPolicy.sendKey = true;
 
-        val writePolicy = new WritePolicy();
+        writePolicy = new WritePolicy();
         writePolicy.maxRetries = config.getRetries();
         writePolicy.consistencyLevel = ConsistencyLevel.CONSISTENCY_ALL;
-        writePolicy.replica = Replica.MASTER;
+        writePolicy.replica = Replica.MASTER_PROLES;
         writePolicy.sleepBetweenRetries = config.getSleepBetweenRetries();
+        writePolicy.commitLevel = CommitLevel.COMMIT_ALL;
         writePolicy.timeout = config.getTimeout();
+        writePolicy.sendKey = true;
+        writePolicy.expiration = config.getTtl();
+
 
         val clientPolicy = new ClientPolicy();
         clientPolicy.maxConnsPerNode = config.getMaxConnectionsPerNode();
         clientPolicy.readPolicyDefault = readPolicy;
         clientPolicy.writePolicyDefault = writePolicy;
         clientPolicy.failIfNotConnected = true;
+        clientPolicy.requestProleReplicas = true;
+        clientPolicy.threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 16);
 
         val hosts = config.getHosts().split(",");
         val hostAddresses = Arrays.stream(hosts).map( h -> {
@@ -87,6 +121,10 @@ public class AerospikeConnectionManager {
         if(null != client) {
             client.close();
         }
+    }
+
+    public static WritePolicy getWritePolicy(int ttl) throws ExecutionException {
+        return writePolicyCache.get(ttl);
     }
 
 }
