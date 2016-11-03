@@ -17,6 +17,7 @@
 
 package io.dropwizard.revolver.persistence;
 
+import io.dropwizard.revolver.base.core.RevolverCallbackResponses;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
@@ -42,7 +43,7 @@ public interface PersistenceProvider {
 
     RevolverCallbackResponse response(final String requestId);
 
-    List<RevolverCallbackResponse> responses(final String mailboxId);
+    List<RevolverCallbackResponses> responses(final String mailboxId);
 
     RevolverCallbackRequest request(final String requestId);
 

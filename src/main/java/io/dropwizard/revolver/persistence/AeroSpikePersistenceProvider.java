@@ -34,16 +34,14 @@ import com.google.common.base.Strings;
 import io.dropwizard.revolver.aeroapike.AerospikeConnectionManager;
 import io.dropwizard.revolver.base.core.RevolverCallbackRequest;
 import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
+import io.dropwizard.revolver.base.core.RevolverCallbackResponses;
 import io.dropwizard.revolver.base.core.RevolverRequestState;
 import io.dropwizard.revolver.core.config.AerospikeMailBoxConfig;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author phaneesh
@@ -211,16 +209,22 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     }
 
     @Override
-    public List<RevolverCallbackResponse> responses(String mailboxId) {
+    public List<RevolverCallbackResponses> responses(String mailboxId) {
         final Statement statement = new Statement();
         statement.setNamespace(mailBoxConfig.getNamespace());
         statement.setSetName(MAILBOX_SET_NAME);
         statement.setIndexName("idx_mailbox_id");
         statement.setFilters(Filter.equal(BinNames.MAILBOX_ID, mailboxId));
-        List<RevolverCallbackResponse> responses = new ArrayList<>();
+        List<RevolverCallbackResponses> responses = new ArrayList<>();
         try (RecordSet records = AerospikeConnectionManager.getClient().query(null, statement)) {
             while (records.next()) {
-                responses.add(recordToResponse(records.getRecord()));
+                Record record =  records.getRecord();
+                RevolverRequestState state = RevolverRequestState.valueOf(record.getString(BinNames.STATE));
+                switch (state) {
+                    case ERROR:
+                    case RESPONDED:
+                        responses.add(recordToResponses(record));
+                }
             }
         }
         return responses;
@@ -283,6 +287,20 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
         }
         return RevolverCallbackResponse.builder()
                 .body((byte[])record.getValue(BinNames.RESPONSE_BODY))
+                .statusCode(record.getInt(BinNames.RESPONSE_STATUS_CODE))
+                .headers(headers)
+                .build();
+    }
+
+    private RevolverCallbackResponses recordToResponses(Record record) {
+        Map<String, List<String>> headers = new HashMap<>();
+        try {
+            headers = objectMapper.readValue(record.getString(BinNames.RESPONSE_HEADERS), new TypeReference<Map<String, List<String>>>(){});
+        } catch (IOException e) {
+            log.warn("Error decoding response headers", e);
+        }
+        return RevolverCallbackResponses.builder()
+                .body(Base64.getEncoder().encodeToString((byte[])(record.getValue(BinNames.RESPONSE_BODY))))
                 .statusCode(record.getInt(BinNames.RESPONSE_STATUS_CODE))
                 .headers(headers)
                 .build();

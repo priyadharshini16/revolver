@@ -213,7 +213,7 @@ public class RevolverMailboxResource {
                         .errorCode("R003")
                         .build();
             }
-            List<RevolverCallbackResponse> callbackResponses = persistenceProvider.responses(mailboxId);
+            List<RevolverCallbackResponses> callbackResponses = persistenceProvider.responses(mailboxId);
             if (callbackResponses == null) {
                 throw NOT_FOUND_ERROR;
             }
