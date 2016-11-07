@@ -31,6 +31,8 @@ import java.util.Map;
 @ToString(exclude = "body")
 public class RevolverCallbackResponses {
 
+    private String requestId;
+
     private Map<String, List<String>> headers;
 
     private String body;

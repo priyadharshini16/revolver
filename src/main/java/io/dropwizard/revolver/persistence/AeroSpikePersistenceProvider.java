@@ -219,11 +219,12 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
         try (RecordSet records = AerospikeConnectionManager.getClient().query(null, statement)) {
             while (records.next()) {
                 Record record =  records.getRecord();
+
                 RevolverRequestState state = RevolverRequestState.valueOf(record.getString(BinNames.STATE));
                 switch (state) {
                     case ERROR:
                     case RESPONDED:
-                        responses.add(recordToResponses(record));
+                        responses.add(recordToResponses(record, records.getKey()));
                 }
             }
         }
@@ -292,7 +293,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
                 .build();
     }
 
-    private RevolverCallbackResponses recordToResponses(Record record) {
+    private RevolverCallbackResponses recordToResponses(Record record, Key key) {
         Map<String, List<String>> headers = new HashMap<>();
         try {
             headers = objectMapper.readValue(record.getString(BinNames.RESPONSE_HEADERS), new TypeReference<Map<String, List<String>>>(){});
@@ -303,6 +304,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
                 .body(Base64.getEncoder().encodeToString((byte[])(record.getValue(BinNames.RESPONSE_BODY))))
                 .statusCode(record.getInt(BinNames.RESPONSE_STATUS_CODE))
                 .headers(headers)
+                .requestId((String)key.userKey.getObject())
                 .build();
     }
 }
