@@ -115,10 +115,11 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
             final Bin created = new Bin(BinNames.CREATED, Instant.now().toEpochMilli());
             final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
             final Bin state = new Bin(BinNames.STATE, RevolverRequestState.RECEIVED.name());
-            WritePolicy wp = ttl == 0 ? AerospikeConnectionManager.writePolicy : AerospikeConnectionManager.getWritePolicy(ttl);
+            WritePolicy wp = ttl <= 0 ? AerospikeConnectionManager.writePolicy : AerospikeConnectionManager.getWritePolicy(ttl);
             AerospikeConnectionManager.getClient().put(wp, key,
                     service, api, mode, method, path, mailBoxId, queryParams, callbackUri, requestHeaders, requestBody, requestTime,
                     created, updated, state);
+            log.info("Mailbox Message saved. Key: {} | TTL: {}", requestId, ttl);
         } catch (JsonProcessingException e) {
             log.warn("Error encoding request", e);
         }
