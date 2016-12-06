@@ -26,6 +26,7 @@ import io.dropwizard.revolver.base.core.*;
 import io.dropwizard.revolver.exception.RevolverException;
 import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
+import io.dropwizard.revolver.util.HeaderUtil;
 import io.dropwizard.revolver.util.ResponseTransformationUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -40,6 +41,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -116,7 +118,13 @@ public class RevolverMailboxResource {
             switch (state) {
                 case RESPONDED:
                 case ERROR:
-                    persistenceProvider.setRequestState(requestId, RevolverRequestState.READ);
+                    RevolverCallbackRequest callbackRequest = persistenceProvider.request(requestId);
+                    List<String> ttl = callbackRequest.getHeaders().getOrDefault(RevolversHttpHeaders.MAILBOX_TTL_HEADER, Collections.emptyList());
+                    int mailboxTtl = HeaderUtil.getTTL(callbackRequest);
+                    if(!ttl.isEmpty()) {
+                        mailboxTtl = Integer.parseInt(ttl.get(0));
+                    }
+                    persistenceProvider.setRequestState(requestId, RevolverRequestState.READ, mailboxTtl);
                     return Response.accepted().build();
                 default:
                     return Response.status(Response.Status.BAD_REQUEST).build();

@@ -66,12 +66,12 @@ public class InMemoryPersistenceProvider implements PersistenceProvider {
     }
 
     @Override
-    public void setRequestState(final String requestId, final RevolverRequestState state) {
+    public void setRequestState(final String requestId, final RevolverRequestState state, final int ttl) {
         callbackStates.put(requestId, state);
     }
 
     @Override
-    public void saveResponse(final String requestId, final RevolverCallbackResponse response) {
+    public void saveResponse(final String requestId, final RevolverCallbackResponse response, final int ttl) {
         callbackResponse.put(requestId, response);
         callbackStates.put(requestId, RevolverRequestState.RESPONDED);
     }

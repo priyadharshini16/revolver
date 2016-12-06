@@ -40,6 +40,7 @@ import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import io.dropwizard.revolver.http.model.RevolverHttpRequest;
 import io.dropwizard.revolver.http.model.RevolverHttpResponse;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
+import io.dropwizard.revolver.util.HeaderUtil;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -124,7 +125,8 @@ public class CallbackHandler {
                     log.warn("Invalid protocol for request: {}", requestId);
             }
             //Save it again for good measure (Overridden because of slow initial api call)
-            persistenceProvider.saveResponse(requestId, response);
+            int mailboxTtl = HeaderUtil.getTTL(request);
+            persistenceProvider.saveResponse(requestId, response, mailboxTtl);
         } catch (Exception e) {
             log.error("Invalid callback uri {} for request: {}", request.getCallbackUri(), requestId, e);
         }

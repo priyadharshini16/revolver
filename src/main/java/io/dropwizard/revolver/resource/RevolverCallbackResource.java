@@ -25,6 +25,7 @@ import io.dropwizard.revolver.base.core.RevolverCallbackResponse;
 import io.dropwizard.revolver.callback.CallbackHandler;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
+import io.dropwizard.revolver.util.HeaderUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -78,7 +79,8 @@ public class RevolverCallbackResource {
                     .headers(headers.getRequestHeaders())
                     .statusCode(responseCode != null ? Integer.parseInt(responseCode) : Response.Status.OK.getStatusCode())
                     .build();
-            persistenceProvider.saveResponse(requestId, response);
+            val mailboxTtl = HeaderUtil.getTTL(callbackRequest);
+            persistenceProvider.saveResponse(requestId, response, mailboxTtl);
             if(callbackRequest.getMode() != null && (callbackRequest.getMode().equals(RevolverHttpCommand.CALL_MODE_CALLBACK) || callbackRequest.getMode().equals(RevolverHttpCommand.CALL_MODE_CALLBACK_SYNC)) && !Strings.isNullOrEmpty(callbackRequest.getCallbackUri())) {
                 callbackHandler.handle(requestId, response);
             }

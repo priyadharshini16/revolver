@@ -360,22 +360,26 @@ public class RevolverRequestResource {
         if(isDownstreamAsync) {
             val result = response.get();
             if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode()) {
-                persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
+                persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED, mailBoxTtl);
             } else {
-                persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
-                saveResponse(requestId, result, callMode);
+                persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED, mailBoxTtl);
+                saveResponse(requestId, result, callMode, mailBoxTtl);
             }
             return transform(headers, result, api.getApi(), path, method);
         } else {
             response.thenAcceptAsync( result -> {
-                if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode()) {
-                    persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
-                } else if(result.getStatusCode() == Response.Status.OK.getStatusCode()) {
-                    persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED);
-                    saveResponse(requestId, result, callMode);
-                } else {
-                    persistenceProvider.setRequestState(requestId, RevolverRequestState.ERROR);
-                    saveResponse(requestId, result, callMode);
+                try {
+                    if(result.getStatusCode() == Response.Status.ACCEPTED.getStatusCode()) {
+                        persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED, mailBoxTtl);
+                    } else if(result.getStatusCode() == Response.Status.OK.getStatusCode()) {
+                        persistenceProvider.setRequestState(requestId, RevolverRequestState.RESPONDED, mailBoxTtl);
+                        saveResponse(requestId, result, callMode, mailBoxTtl);
+                    } else {
+                        persistenceProvider.setRequestState(requestId, RevolverRequestState.ERROR, mailBoxTtl);
+                        saveResponse(requestId, result, callMode, mailBoxTtl);
+                    }
+                } catch (Exception e) {
+                    log.error("Error setting request state for request id: {}", requestId, e);
                 }
             });
             RevolverAckMessage revolverAckMessage = RevolverAckMessage.builder().requestId(requestId).acceptedAt(Instant.now().toEpochMilli()).build();
@@ -435,18 +439,18 @@ public class RevolverRequestResource {
                         .build()
         );
         val result = response.get();
-        persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED);
+        persistenceProvider.setRequestState(requestId, RevolverRequestState.REQUESTED, mailBoxTtl);
         return transform(headers, result, api.getApi(), path, method);
     }
 
-    private void saveResponse(String requestId, RevolverHttpResponse result, final String callMode) {
+    private void saveResponse(String requestId, RevolverHttpResponse result, final String callMode, final int ttl) {
         try {
             val response = RevolverCallbackResponse.builder()
                     .body(result.getBody())
                     .headers(result.getHeaders())
                     .statusCode(result.getStatusCode())
                     .build();
-            persistenceProvider.saveResponse(requestId, response);
+            persistenceProvider.saveResponse(requestId, response, ttl);
             if(callMode != null && callMode.equals(RevolverHttpCommand.CALL_MODE_CALLBACK)) {
                 callbackHandler.handle(requestId, response);
             }

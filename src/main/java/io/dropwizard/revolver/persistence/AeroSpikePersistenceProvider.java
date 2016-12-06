@@ -152,7 +152,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     }
 
     @Override
-    public void setRequestState(String requestId, RevolverRequestState state) {
+    public void setRequestState(String requestId, RevolverRequestState state, int ttl) throws Exception {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
         final Record record = AerospikeConnectionManager.getClient().get(AerospikeConnectionManager.readPolicy, key, BinNames.STATE);
         final RevolverRequestState requestState = RevolverRequestState.valueOf(record.getString(BinNames.STATE));
@@ -160,15 +160,16 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
             case RESPONDED:
                 break;
             default:
+                WritePolicy wp = ttl <= 0 ? AerospikeConnectionManager.writePolicy : AerospikeConnectionManager.getWritePolicy(ttl);
                 final Bin binState = new Bin(BinNames.STATE, state.name());
                 final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
-                AerospikeConnectionManager.getClient().operate(AerospikeConnectionManager.writePolicy, key,
+                AerospikeConnectionManager.getClient().operate(wp, key,
                         Operation.put(binState), Operation.put(updated));
         }
     }
 
     @Override
-    public void saveResponse(String requestId, RevolverCallbackResponse response) {
+    public void saveResponse(String requestId, RevolverCallbackResponse response, final int ttl) throws Exception {
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
         final Bin state = new Bin(BinNames.STATE, RevolverRequestState.RESPONDED.name());
         try {
@@ -177,7 +178,8 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
             final Bin responseStatusCode = new Bin(BinNames.RESPONSE_STATUS_CODE, response.getStatusCode());
             final Bin responseTime = new Bin(BinNames.RESPONSE_TIME, Instant.now().toEpochMilli());
             final Bin updated = new Bin(BinNames.UPDATED, Instant.now().toEpochMilli());
-            AerospikeConnectionManager.getClient().operate(AerospikeConnectionManager.writePolicy, key,
+            WritePolicy wp = ttl <= 0 ? AerospikeConnectionManager.writePolicy : AerospikeConnectionManager.getWritePolicy(ttl);
+            AerospikeConnectionManager.getClient().operate(wp, key,
                     Operation.put(state),
                     Operation.put(responseHeaders),
                     Operation.put(responseBody),

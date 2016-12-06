@@ -4,7 +4,7 @@
 
     <groupId>io.dropwizard</groupId>
     <artifactId>dropwizard-revolver</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.5-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>dropwizard-revolver</name>
@@ -44,19 +44,18 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>1.0.0</dropwizard.version>
+        <dropwizard.version>1.0.5</dropwizard.version>
         <dropwizard.swagger.version>1.0.0-1</dropwizard.swagger.version>
         <dropwizard.servicediscovery>1.0.0-SNAPSHOT</dropwizard.servicediscovery>
-        <xml.bundle>1.0.0-1</xml.bundle>
-        <msgpack.bundle>1.0.0-1</msgpack.bundle>
-        <hystrix.version>1.5.6</hystrix.version>
-        <ranger.version>0.2.1</ranger.version>
-        <okhttp.version>3.4.1</okhttp.version>
-        <woodstox.version>4.4.1</woodstox.version>
-        <aerospike.version>3.2.5</aerospike.version>
+        <xml.bundle>1.0.5-1</xml.bundle>
+        <msgpack.bundle>1.0.5-1</msgpack.bundle>
+        <hystrix.version>1.5.8</hystrix.version>
+        <ranger.version>0.3.0-SNAPSHOT</ranger.version>
+        <okhttp.version>3.5.0</okhttp.version>
+        <aerospike.version>3.3.1</aerospike.version>
         <junit.version>4.12</junit.version>
         <wiremock.version>1.58</wiremock.version>
-        <lombok.version>1.16.10</lombok.version>
+        <lombok.version>1.16.12</lombok.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
