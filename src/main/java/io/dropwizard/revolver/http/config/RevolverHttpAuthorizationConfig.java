@@ -33,6 +33,7 @@ import java.util.Set;
 @Builder
 public class RevolverHttpAuthorizationConfig {
 
+    @Builder.Default
     private String type = "dynamic";
 
     @Singular

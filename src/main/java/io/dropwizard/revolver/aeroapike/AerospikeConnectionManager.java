@@ -58,7 +58,7 @@ public class AerospikeConnectionManager {
                     wp.replica = Replica.MASTER_PROLES;
                     wp.sleepBetweenRetries = config.getSleepBetweenRetries();
                     wp.commitLevel = CommitLevel.COMMIT_ALL;
-                    wp.timeout = config.getTimeout();
+                    wp.totalTimeout = config.getTimeout();
                     wp.sendKey = true;
                     wp.expiration = key;
                     return wp;
@@ -73,7 +73,7 @@ public class AerospikeConnectionManager {
         readPolicy.consistencyLevel = ConsistencyLevel.CONSISTENCY_ONE;
         readPolicy.replica = Replica.MASTER_PROLES;
         readPolicy.sleepBetweenRetries = config.getSleepBetweenRetries();
-        readPolicy.timeout = config.getTimeout();
+        readPolicy.totalTimeout = config.getTimeout();
         readPolicy.sendKey = true;
 
         writePolicy = new WritePolicy();
@@ -82,7 +82,7 @@ public class AerospikeConnectionManager {
         writePolicy.replica = Replica.MASTER_PROLES;
         writePolicy.sleepBetweenRetries = config.getSleepBetweenRetries();
         writePolicy.commitLevel = CommitLevel.COMMIT_ALL;
-        writePolicy.timeout = config.getTimeout();
+        writePolicy.totalTimeout = config.getTimeout();
         writePolicy.sendKey = true;
         writePolicy.expiration = config.getTtl();
 

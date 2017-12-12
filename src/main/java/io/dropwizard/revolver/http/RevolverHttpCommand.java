@@ -38,7 +38,7 @@ import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.StrSubstitutor;
+import org.apache.commons.text.StrSubstitutor;
 
 import javax.ws.rs.core.*;
 import java.io.IOException;

@@ -25,7 +25,6 @@ import io.dropwizard.jersey.DropwizardResourceConfig;
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.jetty.MutableServletContextHandler;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
-import io.dropwizard.metrics.MetricsFactory;
 import io.dropwizard.revolver.callback.CallbackHandler;
 import io.dropwizard.revolver.core.config.*;
 import io.dropwizard.revolver.core.config.hystrix.ThreadPoolConfig;
@@ -39,6 +38,7 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.curator.framework.CuratorFramework;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -78,6 +78,10 @@ public class BaseRevolverTest {
             return revolverConfig;
         }
 
+        @Override
+        public CuratorFramework getCurator() {
+            return null;
+        }
     };
 
     protected RevolverConfig revolverConfig;

@@ -260,12 +260,14 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
         return requests;
     }
 
+    private static final  TypeReference<Map<String, List<String>>> headerAndQueryParamTypeReference = new TypeReference<Map<String, List<String>>>(){};
+
     private RevolverCallbackRequest recordToRequest(Record record) {
         Map<String, List<String>> headers = new HashMap<>();
         Map<String, List<String>> queryParams = new HashMap<>();
         try {
-            headers = objectMapper.readValue(record.getString(BinNames.REQUEST_HEADERS), new TypeReference<Map<String, List<String>>>(){});
-            queryParams = objectMapper.readValue(record.getString(BinNames.QUERY_PARAMS), new TypeReference<Map<String, List<String>>>(){});
+            headers = objectMapper.readValue(record.getString(BinNames.REQUEST_HEADERS), headerAndQueryParamTypeReference);
+            queryParams = objectMapper.readValue(record.getString(BinNames.QUERY_PARAMS), headerAndQueryParamTypeReference);
         } catch (IOException e) {
             log.warn("Error decoding response", e);
         }

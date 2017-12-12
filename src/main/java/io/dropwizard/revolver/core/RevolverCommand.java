@@ -31,6 +31,7 @@ import io.dropwizard.revolver.core.tracing.TraceCollector;
 import io.dropwizard.revolver.core.tracing.TraceInfo;
 import io.dropwizard.revolver.core.util.RevolverCommandHelper;
 import io.dropwizard.revolver.core.util.RevolverExceptionHelper;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -84,7 +85,10 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
             log.debug("Command response: " +response);
             return response;
         } catch (Throwable t) {
-            val rootCause = ExceptionUtils.getRootCause(t);
+            Throwable rootCause = ExceptionUtils.getRootCause(t);
+            if(rootCause == null) {
+                rootCause = t;
+            }
             if( rootCause instanceof TimeoutException) {
                 throw (TimeoutException)rootCause;
             }

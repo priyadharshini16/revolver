@@ -52,5 +52,6 @@ public class RevolverRequest {
 
     @NotNull
     @Valid
+    @Builder.Default
     private TraceInfo trace = new TraceInfo();
 }

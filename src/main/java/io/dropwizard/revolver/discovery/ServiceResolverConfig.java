@@ -31,6 +31,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ServiceResolverConfig {
 
+    @Builder.Default
     private boolean useCurator = false;
 
     private String zkConnectionString;

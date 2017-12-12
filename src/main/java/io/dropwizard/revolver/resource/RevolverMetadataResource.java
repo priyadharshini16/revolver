@@ -22,6 +22,7 @@ import com.flipkart.ranger.healthcheck.HealthcheckStatus;
 import com.flipkart.ranger.model.ServiceNode;
 import io.dropwizard.revolver.RevolverBundle;
 import io.dropwizard.revolver.core.config.RevolverConfig;
+import io.dropwizard.revolver.core.config.RevolverServiceConfig;
 import io.dropwizard.revolver.core.model.RevolverApiMetadata;
 import io.dropwizard.revolver.core.model.RevolverMetadataResponse;
 import io.dropwizard.revolver.core.model.RevolverServiceMetadata;
@@ -38,6 +39,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -68,7 +70,7 @@ public class RevolverMetadataResource {
         final List<RevolverHttpServiceConfig> services = config.getServices().stream()
                 .filter(service -> service instanceof RevolverHttpServiceConfig)
                 .map(service -> ((RevolverHttpServiceConfig)service))
-                .sorted((o1, o2) -> o1.getService().compareTo(o2.getService())).collect(Collectors.toList());
+                .sorted(Comparator.comparing(RevolverServiceConfig::getService)).collect(Collectors.toList());
         services.forEach( s -> {
             RevolverServiceMetadata.RevolverServiceMetadataBuilder serviceMetadataBuilder = RevolverServiceMetadata.builder();
             serviceMetadataBuilder.name(s.getService())
@@ -100,7 +102,7 @@ public class RevolverMetadataResource {
                 .path(a.getPath())
                 .methods(a.getMethods())
                 .secured(!a.isWhitelist())
-                .build()).sorted((o1, o2) -> o1.getPath().compareTo(o2.getPath())).collect(Collectors.toList());
+                .build()).sorted(Comparator.comparing(RevolverApiMetadata::getPath)).collect(Collectors.toList());
     }
 
     private void instanceStats(String service, RangerEndpointSpec endpoint, RevolverServiceMetadata.RevolverServiceMetadataBuilder serviceMetadataBuilder) {

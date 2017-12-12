@@ -15,6 +15,7 @@
  */
 package io.dropwizard.revolver;
 
+import com.codahale.metrics.json.MetricsModule;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -76,8 +77,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author phaneesh
@@ -136,6 +137,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
 
     private void registerTypes(final Bootstrap<?> bootstrap) {
+        bootstrap.getObjectMapper().registerModule(new MetricsModule(TimeUnit.MINUTES, TimeUnit.MILLISECONDS, false));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RevolverHttpServiceConfig.class, "http"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(RevolverHttpsServiceConfig.class, "https"));
         bootstrap.getObjectMapper().registerSubtypes(new NamedType(BasicAuthConfig.class, "basic"));
@@ -150,20 +152,19 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         xmlObjectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         xmlObjectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         xmlObjectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        xmlObjectMapper.configure(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS, true);
         xmlObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         xmlObjectMapper.configure(ToXmlGenerator.Feature.WRITE_XML_1_1, true);
     }
 
     private static Map<String, RevolverHttpApiConfig> generateApiConfigMap(final RevolverHttpServiceConfig serviceConfiguration) {
         val tokenMatch = Pattern.compile("\\{(([^/])+\\})");
-        List<RevolverHttpApiConfig> apis = serviceConfiguration.getApis().stream().collect(Collectors.toList());
-        Collections.sort(apis, (o1, o2) -> {
+        List<RevolverHttpApiConfig> apis = new ArrayList<>(serviceConfiguration.getApis());
+        apis.sort((o1, o2) -> {
             String o1Expr = generatePathExpression(o1.getPath());
             String o2Expr = generatePathExpression(o2.getPath());
             return tokenMatch.matcher(o2Expr).groupCount() - tokenMatch.matcher(o1Expr).groupCount();
         });
-        Collections.sort(apis, (o1, o2) -> o1.getPath().compareTo(o2.getPath()));
+        apis.sort(Comparator.comparing(RevolverHttpApiConfig::getPath));
         apis.forEach(apiConfig -> serviceToPathMap.add(serviceConfiguration.getService(),
                 ApiPathMap.builder()
                         .api(apiConfig)
@@ -216,9 +217,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         throw new IllegalArgumentException("Invalid mailbox configuration");
     }
 
-    public CuratorFramework getCurator() {
-        return null;
-    }
+    public abstract CuratorFramework getCurator();
 
     private void initializeRevolver(final T configuration, final Environment environment) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException {
         final RevolverConfig revolverConfig = getRevolverConfig(configuration);

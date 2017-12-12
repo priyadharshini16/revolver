@@ -90,10 +90,10 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
-        assertEquals(resources.client().target("/apis/test/v1/test").request()
+        assertEquals(200, resources.client().target("/apis/test/v1/test").request()
                 .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
                 .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
-                .delete().getStatus(), 200);
+                .delete().getStatus());
     }
 
     @Test
@@ -102,10 +102,10 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
-        assertEquals(resources.client().target("/apis/test/v1/test").request()
+        assertEquals(200, resources.client().target("/apis/test/v1/test").request()
                 .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
                 .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
-                .head().getStatus(), 200);
+                .head().getStatus());
     }
 
     @Test
@@ -114,10 +114,10 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
-        assertEquals(resources.client().target("/apis/test/v1/test").request()
+        assertEquals(200, resources.client().target("/apis/test/v1/test").request()
                 .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
                 .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
-                .method("PATCH").getStatus(), 200);
+                .method("PATCH").getStatus());
     }
 
     @Test
@@ -126,10 +126,10 @@ public class RevolverRequestResourceTest extends BaseRevolverTest {
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
-        assertEquals(resources.client().target("/apis/test/v1/test").request()
+        assertEquals(200, resources.client().target("/apis/test/v1/test").request()
                 .header(RevolversHttpHeaders.REQUEST_ID_HEADER, UUID.randomUUID().toString())
                 .header(RevolversHttpHeaders.TXN_ID_HEADER, UUID.randomUUID().toString())
-                .options().getStatus(), 200);
+                .options().getStatus());
     }
 
 

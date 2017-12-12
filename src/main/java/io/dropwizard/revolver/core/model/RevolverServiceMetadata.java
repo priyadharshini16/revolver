@@ -36,10 +36,13 @@ public class RevolverServiceMetadata {
 
     private String status;
 
+    @Builder.Default
     private long instances = -1;
 
+    @Builder.Default
     private long healthy = -1;
 
+    @Builder.Default
     private long unhealthy = -1;
 
     @Singular("apis")

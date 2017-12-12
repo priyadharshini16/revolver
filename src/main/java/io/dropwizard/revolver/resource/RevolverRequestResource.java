@@ -92,7 +92,6 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver GET api endpoint")
-    @Produces({MediaType.WILDCARD})
     public Response get(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.GET, path, headers, uriInfo, null);
@@ -102,7 +101,6 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver HEAD api endpoint")
-    @Produces({MediaType.WILDCARD})
     public Response head(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.HEAD, path, headers, uriInfo, null);
@@ -112,8 +110,6 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver POST api endpoint")
-    @Produces({MediaType.WILDCARD})
-    @Consumes({MediaType.WILDCARD})
     public Response post(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.POST, path, headers, uriInfo, body);
@@ -123,8 +119,6 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver PUT api endpoint")
-    @Produces({MediaType.WILDCARD})
-    @Consumes({MediaType.WILDCARD})
     public Response put(@PathParam("service") final String service,
                          @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PUT, path, headers, uriInfo, body);
@@ -134,7 +128,6 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver DELETE api endpoint")
-    @Produces({MediaType.WILDCARD})
     public Response delete(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.DELETE, path, headers, uriInfo, null);
@@ -144,8 +137,6 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver PATCH api endpoint")
-    @Produces({MediaType.WILDCARD})
-    @Consumes({MediaType.WILDCARD})
     public Response patch(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.PATCH, path, headers, uriInfo, body);
@@ -155,8 +146,6 @@ public class RevolverRequestResource {
     @Path(value="/{service}/{path: .*}")
     @Metered
     @ApiOperation(value = "Revolver OPTIONS api endpoint")
-    @Produces({MediaType.WILDCARD})
-    @Consumes({MediaType.WILDCARD})
     public Response options(@PathParam("service") final String service,
                           @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
         return processRequest(service, RevolverHttpApiConfig.RequestMethod.OPTIONS, path, headers, uriInfo, body);
