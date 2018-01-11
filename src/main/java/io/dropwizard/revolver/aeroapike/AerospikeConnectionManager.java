@@ -32,13 +32,14 @@ import lombok.val;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 /**
  * @author phaneesh
  */
 @Slf4j
 public class AerospikeConnectionManager {
+
+    private AerospikeConnectionManager() {}
 
     private static IAerospikeClient client;
 
@@ -96,15 +97,14 @@ public class AerospikeConnectionManager {
         clientPolicy.threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 16);
 
         val hosts = config.getHosts().split(",");
-        val hostAddresses = Arrays.stream(hosts).map( h -> {
-            String host[] = h.split(":");
-            if(host.length == 2) {
+        client = new AerospikeClient(clientPolicy, Arrays.stream(hosts).map(h -> {
+            String[] host = h.split(":");
+            if (host.length == 2) {
                 return new Host(host[0], Integer.parseInt(host[1]));
             } else {
                 return new Host(host[0], 3000);
             }
-        }).collect(Collectors.toList());
-        client = new AerospikeClient(clientPolicy, hostAddresses.toArray(new Host[0]));
+        }).toArray(Host[]::new));
         log.info("Aerospike connection status: " +client.isConnected());
     }
 
