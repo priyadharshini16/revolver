@@ -17,10 +17,7 @@
 
 package io.dropwizard.revolver.persistence;
 
-import com.aerospike.client.Bin;
-import com.aerospike.client.Key;
-import com.aerospike.client.Operation;
-import com.aerospike.client.Record;
+import com.aerospike.client.*;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexType;
@@ -82,13 +79,17 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
     public AeroSpikePersistenceProvider(AerospikeMailBoxConfig mailBoxConfig, final ObjectMapper objectMapper) {
         this.mailBoxConfig = mailBoxConfig;
         this.objectMapper = objectMapper;
-        final IndexTask idxMailboxId = AerospikeConnectionManager.getClient().createIndex(null, mailBoxConfig.getNamespace(), MAILBOX_SET_NAME,
-                "idx_mailbox_id", BinNames.MAILBOX_ID, IndexType.STRING);
-        idxMailboxId.waitTillComplete();
-        final IndexTask idxMessageState = AerospikeConnectionManager.getClient().createIndex(null, mailBoxConfig.getNamespace(), MAILBOX_SET_NAME,
-                "idx_message_state", BinNames.STATE, IndexType.STRING);
-        idxMailboxId.waitTillComplete();
-        idxMessageState.waitTillComplete();
+        try {
+            final IndexTask idxMailboxId = AerospikeConnectionManager.getClient().createIndex(null, mailBoxConfig.getNamespace(), MAILBOX_SET_NAME,
+                    "idx_mailbox_id", BinNames.MAILBOX_ID, IndexType.STRING);
+            idxMailboxId.waitTillComplete();
+            final IndexTask idxMessageState = AerospikeConnectionManager.getClient().createIndex(null, mailBoxConfig.getNamespace(), MAILBOX_SET_NAME,
+                    "idx_message_state", BinNames.STATE, IndexType.STRING);
+            idxMailboxId.waitTillComplete();
+            idxMessageState.waitTillComplete();
+        } catch (AerospikeException e) {
+            log.warn("Failed to create indexes", e);
+        }
     }
 
     @Override
