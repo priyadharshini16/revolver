@@ -136,7 +136,7 @@ public class CallbackHandler {
                               RevolverCallbackResponse callBackResponse) {
         try {
             String callbackUri = uri.getScheme() + "://" + uri.getHost() + ":" + (uri.getPort() != -1 ? uri.getPort() : "");
-            log.info("Callback Request URI: {} | Payload: {}", uri.toURL().toString(), new String(callBackResponse.getBody()));
+            log.info("Callback Request URI: {} | Payload: {}", uri.toString(), new String(callBackResponse.getBody()));
             final RevolverHttpServiceConfig httpCommandConfig = clientLoadingCache.get(CallbackConfigKey.builder()
                     .callbackRequest(callbackRequest)
                     .endpoint(callbackUri)
