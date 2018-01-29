@@ -177,7 +177,7 @@ public class RevolverServiceResolver {
         @Override
         public void visit(final RangerEndpointSpec rangerEndpointSpecification) {
             if (!this.discoverEnabled) {
-                throw new IllegalAccessError("Zookeeper is not initialized in emissary YAML config. Discovery based lookups will not be possible.");
+                throw new IllegalAccessError("Zookeeper is not initialized in config. Discovery based lookups will not be possible.");
             }
             final SimpleShardedServiceFinder<ShardInfo> finder = this.serviceFinders.get(rangerEndpointSpecification.getService()).getShardFinder();
             final ServiceNode<ShardInfo> node = finder.get(ShardInfo.builder().environment(rangerEndpointSpecification.getEnvironment()).build());

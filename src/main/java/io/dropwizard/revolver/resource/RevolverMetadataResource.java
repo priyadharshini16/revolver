@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class RevolverMetadataResource {
 
+    public static final String UNKNOWN = "UNKNOWN";
     private RevolverConfig config;
 
     @Builder
@@ -77,9 +78,9 @@ public class RevolverMetadataResource {
                     .type(s.getType())
                     .apis(apiMetadataList(s));
             if (s.getEndpoint() instanceof RangerEndpointSpec) {
-                instanceStats(s.getService(), (RangerEndpointSpec) s.getEndpoint(), serviceMetadataBuilder);
+                instanceStats((RangerEndpointSpec) s.getEndpoint(), serviceMetadataBuilder);
             } else {
-                serviceMetadataBuilder.status("UNKNOWN");
+                serviceMetadataBuilder.status(UNKNOWN);
             }
             metadataResponse.service(serviceMetadataBuilder.build());
         });
@@ -105,22 +106,22 @@ public class RevolverMetadataResource {
                 .build()).sorted(Comparator.comparing(RevolverApiMetadata::getPath)).collect(Collectors.toList());
     }
 
-    private void instanceStats(String service, RangerEndpointSpec endpoint, RevolverServiceMetadata.RevolverServiceMetadataBuilder serviceMetadataBuilder) {
+    private void instanceStats(RangerEndpointSpec endpoint, RevolverServiceMetadata.RevolverServiceMetadataBuilder serviceMetadataBuilder) {
         RevolverServiceResolver serviceResolver = RevolverBundle.getServiceNameResolver();
         if(serviceResolver == null) {
-            serviceMetadataBuilder.status("UNKNOWN");
+            serviceMetadataBuilder.status(UNKNOWN);
         } else {
-            if(serviceResolver.getServiceFinders().containsKey(service)) {
+            if(serviceResolver.getServiceFinders().containsKey(endpoint.getService())) {
                 List<ServiceNode<RevolverServiceResolver.ShardInfo>> serviceNodes = serviceResolver.getServiceFinders()
-                        .get(service).getShardFinder()
+                        .get(endpoint.getService()).getShardFinder()
                         .getAll(new RevolverServiceResolver.ShardInfo(endpoint.getEnvironment()));
                 long healthy =  serviceNodes.parallelStream().filter( n -> n.getHealthcheckStatus() == HealthcheckStatus.healthy).count();
                 serviceMetadataBuilder.instances(serviceNodes.size())
                         .healthy(healthy)
                         .unhealthy(serviceNodes.size() - healthy);
-                serviceMetadataBuilder.status(healthy > 0 ?  "HEALTHY" : "UNHEALTHY");
+                serviceMetadataBuilder.status(healthy > 0 ?  "HEALTHY" : UNKNOWN);
             } else {
-                serviceMetadataBuilder.status("UNKNOWN");
+                serviceMetadataBuilder.status(UNKNOWN);
             }
         }
     }
