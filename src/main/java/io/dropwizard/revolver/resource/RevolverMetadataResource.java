@@ -35,10 +35,9 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -86,6 +85,22 @@ public class RevolverMetadataResource {
         });
         return metadataResponse.build();
     }
+
+    @Path("/v1/metadata/service/ranger/{service}")
+    @GET
+    @Metered
+    @ApiOperation(value = "Get the status & metadata of a service registered in api")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<ServiceNode<RevolverServiceResolver.ShardInfo>> serviceStatus(@PathParam("service") String service) {
+        RevolverServiceResolver serviceResolver = RevolverBundle.getServiceNameResolver();
+        RevolverServiceResolver.ShardedServiceDiscoveryInfo serviceInfo = serviceResolver.getServiceFinders().getOrDefault(service, null);
+        if(serviceInfo == null) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        return serviceInfo.getShardFinder()
+                .getAll(new RevolverServiceResolver.ShardInfo(serviceInfo.getEnvironment()));
+    }
+
 
     @Path("/v1/metadata/config")
     @GET
