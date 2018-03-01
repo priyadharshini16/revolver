@@ -34,13 +34,12 @@ import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import okhttp3.*;
-import okhttp3.MediaType;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StrSubstitutor;
 
-import javax.ws.rs.core.*;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -128,8 +127,14 @@ public class RevolverHttpCommand extends RevolverCommand<RevolverHttpRequest, Re
 
     private RevolverHttpResponse executeRequest(final RevolverHttpApiConfig apiConfiguration, final Request request, final boolean readBody) throws Exception {
         try {
+            long start = System.currentTimeMillis();
             val response = client.newCall(request).execute();
-            return getHttpResponse(apiConfiguration, response, readBody);
+            long end = System.currentTimeMillis();
+            val httpResponse = getHttpResponse(apiConfiguration, response, readBody);
+            log.info("[{}/{}] {} {}:{}{} {} {}ms", apiConfiguration.getApi(), apiConfiguration.getPath(),
+                    request.method(), request.url().host(), request.url().port(), request.url().encodedPath(),
+                    httpResponse.getStatusCode(), (end-start));
+            return httpResponse;
         } catch (Exception e) {
             log.error("Error running HTTP GET call: ", e);
             throw e;
