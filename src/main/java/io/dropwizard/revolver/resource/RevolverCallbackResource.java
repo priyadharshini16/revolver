@@ -18,6 +18,7 @@
 package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
+import com.codahale.metrics.annotation.Timed;
 import com.google.common.base.Strings;
 import com.google.common.io.ByteStreams;
 import io.dropwizard.msgpack.MsgPackMediaType;
@@ -62,6 +63,7 @@ public class RevolverCallbackResource {
     @Path("/v1/callback/{requestId}")
     @POST
     @Metered
+    @Timed
     @ApiOperation(value = "Callback for updating responses for a given mailbox request")
     @Produces({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})
     @Consumes({MediaType.APPLICATION_JSON, MsgPackMediaType.APPLICATION_MSGPACK, MediaType.APPLICATION_XML})

@@ -104,9 +104,7 @@ public class RevolverHttpClientFactory {
             final String keystorePath = serviceConfiguration.getKeyStorePath();
             final String keystorePassword = (serviceConfiguration.getKeystorePassword() == null) ? "" : serviceConfiguration.getKeystorePassword();
             if (!StringUtils.isBlank(keystorePath)) {
-                SSLSocketFactory socketFactory = getSSLContext(keystorePath, keystorePassword).getSocketFactory();
-                builder.sslSocketFactory(socketFactory);
-                builder.hostnameVerifier(OkHostnameVerifier.INSTANCE);
+                configureSSL(keystorePath, keystorePassword, builder);
             } else {
                 HostnameVerifier hostNameVerifier = (s, sslSession) -> true;
                 builder.hostnameVerifier(hostNameVerifier);
@@ -122,10 +120,12 @@ public class RevolverHttpClientFactory {
         builder.readTimeout(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
         builder.writeTimeout(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
         builder.connectTimeout(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+        builder.followRedirects(false);
+        builder.followSslRedirects(false);
         return builder.build();
     }
 
-    private static SSLContext getSSLContext(final String keyStorePath, final String keyStorePassword) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, KeyManagementException, UnrecoverableKeyException {
+    private static void configureSSL(final String keyStorePath, final String keyStorePassword, OkHttpClient.Builder clientBuilder) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, KeyManagementException, UnrecoverableKeyException {
         final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
         try (InputStream instream = RevolverHttpClientFactory.class.getClassLoader().getResourceAsStream(keyStorePath)) {
             keyStore.load(instream, keyStorePassword.toCharArray());
@@ -136,7 +136,8 @@ public class RevolverHttpClientFactory {
         keyManagerFactory.init(keyStore, keyStorePassword.toCharArray());
         final SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
-        return sslContext;
+        clientBuilder.hostnameVerifier(OkHostnameVerifier.INSTANCE);
+        clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager)trustManagerFactory.getTrustManagers()[0]);
     }
 
 }

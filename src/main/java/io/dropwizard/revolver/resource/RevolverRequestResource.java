@@ -18,6 +18,7 @@
 package io.dropwizard.revolver.resource;
 
 import com.codahale.metrics.annotation.Metered;
+import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -91,6 +92,7 @@ public class RevolverRequestResource {
     @GET
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @Timed
     @ApiOperation(value = "Revolver GET api endpoint")
     public Response get(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
@@ -100,6 +102,7 @@ public class RevolverRequestResource {
     @HEAD
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @Timed
     @ApiOperation(value = "Revolver HEAD api endpoint")
     public Response head(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
@@ -109,6 +112,7 @@ public class RevolverRequestResource {
     @POST
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @Timed
     @ApiOperation(value = "Revolver POST api endpoint")
     public Response post(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
@@ -118,6 +122,7 @@ public class RevolverRequestResource {
     @PUT
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @Timed
     @ApiOperation(value = "Revolver PUT api endpoint")
     public Response put(@PathParam("service") final String service,
                          @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
@@ -127,6 +132,7 @@ public class RevolverRequestResource {
     @DELETE
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @Timed
     @ApiOperation(value = "Revolver DELETE api endpoint")
     public Response delete(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
@@ -136,6 +142,7 @@ public class RevolverRequestResource {
     @PATCH
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @Timed
     @ApiOperation(value = "Revolver PATCH api endpoint")
     public Response patch(@PathParam("service") final String service,
                         @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
@@ -145,6 +152,7 @@ public class RevolverRequestResource {
     @OPTIONS
     @Path(value="/{service}/{path: .*}")
     @Metered
+    @Timed
     @ApiOperation(value = "Revolver OPTIONS api endpoint")
     public Response options(@PathParam("service") final String service,
                           @PathParam("path") final String path, @Context final HttpHeaders headers, @Context final UriInfo uriInfo, final byte[] body) throws Exception {
