@@ -70,13 +70,15 @@ public class RevolverCallbackResource {
                                    @HeaderParam(RESPONSE_CODE_HEADER) final String responseCode,
                                    @Context final HttpHeaders headers,
                                    @Context final HttpServletRequest request) {
+        long start = System.currentTimeMillis();
         try {
             final val callbackRequest = persistenceProvider.request(requestId);
             if(callbackRequest == null) {
                 return Response.status(Response.Status.BAD_REQUEST).build();
             }
+            byte[] responseBody = ByteStreams.toByteArray(request.getInputStream());
             val response = RevolverCallbackResponse.builder()
-                    .body(ByteStreams.toByteArray(request.getInputStream()))
+                    .body(responseBody)
                     .headers(headers.getRequestHeaders())
                     .statusCode(responseCode != null ? Integer.parseInt(responseCode) : Response.Status.OK.getStatusCode())
                     .build();
@@ -85,6 +87,8 @@ public class RevolverCallbackResource {
             if(callbackRequest.getMode() != null && (callbackRequest.getMode().equals(RevolverHttpCommand.CALL_MODE_CALLBACK) || callbackRequest.getMode().equals(RevolverHttpCommand.CALL_MODE_CALLBACK_SYNC)) && !Strings.isNullOrEmpty(callbackRequest.getCallbackUri())) {
                 callbackHandler.handle(requestId, response);
             }
+            log.info("Callback processing for request id: {} with response size: {} bytes completed in {} ms", requestId,
+                    responseBody.length, (System.currentTimeMillis() - start));
             return Response.accepted().build();
         } catch(Exception e) {
             log.error("Callback error", e);

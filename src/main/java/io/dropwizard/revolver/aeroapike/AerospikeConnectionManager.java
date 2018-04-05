@@ -52,7 +52,7 @@ public class AerospikeConnectionManager {
     private static LoadingCache<Integer, WritePolicy> writePolicyCache = CacheBuilder.newBuilder()
             .build(new CacheLoader<Integer, WritePolicy>() {
                 @Override
-                public WritePolicy load(Integer key) throws Exception {
+                public WritePolicy load(Integer key) {
                     WritePolicy wp = new WritePolicy();
                     wp.maxRetries = config.getRetries();
                     wp.consistencyLevel = ConsistencyLevel.CONSISTENCY_ALL;
@@ -94,7 +94,9 @@ public class AerospikeConnectionManager {
         clientPolicy.writePolicyDefault = writePolicy;
         clientPolicy.failIfNotConnected = true;
         clientPolicy.requestProleReplicas = true;
-        clientPolicy.threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 16);
+        clientPolicy.threadPool = Executors.newFixedThreadPool(64);
+        clientPolicy.connPoolsPerNode = config.getMaxConnectionsPerNode();
+        clientPolicy.sharedThreadPool = true;
 
         val hosts = config.getHosts().split(",");
         client = new AerospikeClient(clientPolicy, Arrays.stream(hosts).map(h -> {
