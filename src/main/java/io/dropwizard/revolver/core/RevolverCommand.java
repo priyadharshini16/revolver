@@ -31,11 +31,10 @@ import io.dropwizard.revolver.core.tracing.TraceCollector;
 import io.dropwizard.revolver.core.tracing.TraceInfo;
 import io.dropwizard.revolver.core.util.RevolverCommandHelper;
 import io.dropwizard.revolver.core.util.RevolverExceptionHelper;
-import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.MDC;
+import rx.Observable;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -82,15 +81,15 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
         try {
             ResponseType response = (ResponseType) new RevolverCommandHandler(RevolverCommandHelper.setter(this, request.getApi()),
                     this.context, this, normalizedRequest).execute();
-            log.debug("Command response: " +response);
+            log.debug("Command response: " + response);
             return response;
         } catch (Throwable t) {
             Throwable rootCause = ExceptionUtils.getRootCause(t);
-            if(rootCause == null) {
+            if (rootCause == null) {
                 rootCause = t;
             }
-            if( rootCause instanceof TimeoutException) {
-                throw (TimeoutException)rootCause;
+            if (rootCause instanceof TimeoutException) {
+                throw (TimeoutException) rootCause;
             }
             errorMessage = rootCause.getLocalizedMessage();
             throw new RevolverExecutionException(RevolverExecutionException.Type.SERVICE_ERROR, rootCause);
@@ -150,6 +149,14 @@ public abstract class RevolverCommand<RequestType extends RevolverRequest, Respo
                     }
                 }
         );
+    }
+
+    @SuppressWarnings("unchecked")
+    public Observable<ResponseType> executeAsyncAsObservable(final RequestType request) {
+        final RequestType normalizedRequest = RevolverCommandHelper.normalize(request);
+        final TraceInfo traceInfo = normalizedRequest.getTrace();
+        addContextInfo(request, traceInfo);
+        return new RevolverCommandHandler(RevolverCommandHelper.setter(this, request.getApi()), this.context, this, normalizedRequest).toObservable();
     }
 
     private void publishTrace(Trace build) {

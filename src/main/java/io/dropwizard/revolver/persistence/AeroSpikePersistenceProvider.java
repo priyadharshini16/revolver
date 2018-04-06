@@ -172,6 +172,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
 
     @Override
     public void saveResponse(String requestId, RevolverCallbackResponse response, final int ttl) throws Exception {
+        long start = System.currentTimeMillis();
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
         final Bin state = new Bin(BinNames.STATE, RevolverRequestState.RESPONDED.name());
         try {
@@ -188,6 +189,7 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
                     Operation.put(responseStatusCode),
                     Operation.put(responseTime),
                     Operation.put(updated));
+            log.info("Response save complete for request id: {} in {} ms", requestId, (System.currentTimeMillis() - start));
         } catch (JsonProcessingException e) {
             log.warn("Error encoding response headers", e);
         }

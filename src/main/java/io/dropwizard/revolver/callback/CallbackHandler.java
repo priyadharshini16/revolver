@@ -38,11 +38,11 @@ import io.dropwizard.revolver.http.RevolversHttpHeaders;
 import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import io.dropwizard.revolver.http.model.RevolverHttpRequest;
-import io.dropwizard.revolver.http.model.RevolverHttpResponse;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
 import io.dropwizard.revolver.util.HeaderUtil;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedHashMap;
@@ -58,7 +58,6 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -134,6 +133,7 @@ public class CallbackHandler {
 
     private void makeCallback(final String requestId, final URI uri, final RevolverCallbackRequest callbackRequest,
                               RevolverCallbackResponse callBackResponse) {
+        long start = System.currentTimeMillis();
         try {
             String callbackUri = uri.getScheme() + "://" + uri.getHost() + ":" + (uri.getPort() != -1 ? uri.getPort() : "");
             log.info("Callback Request URI: {} | Payload: {}", uri.toString(), new String(callBackResponse.getBody()));
@@ -158,30 +158,20 @@ public class CallbackHandler {
                     .method(RevolverHttpApiConfig.RequestMethod.valueOf(method))
                     .service(httpCommandConfig.getService())
                     .build();
-            CompletableFuture<RevolverHttpResponse> httpResponseFuture = httpCommand.executeAsync(httpRequest);
-            httpResponseFuture.thenAcceptAsync(httpResponse -> {
-                if (httpResponse.getStatusCode() >= 200 && httpResponse.getStatusCode() <= 210) {
-                    log.info("Callback success: " + httpResponse.toString());
-                } else {
-                    log.error("Error from callback host: {} | Status Code: {} | Response Body: {}", uri.getHost(),
-                            httpResponse.getStatusCode(), httpResponse.getBody() != null ? new String(httpResponse.getBody()) : "NONE");
-                }
-            });
+            httpCommand.executeAsyncAsObservable(httpRequest).subscribe((response) -> {
+                        if (response.getStatusCode() >= 200 && response.getStatusCode() <= 210) {
+                            log.info("Callback success: " + response.toString());
+                        } else {
+                            log.error("Error from callback for request id: {} | host: {} | Status Code: {} | Response Body: {}",
+                                    requestId, uri.getHost(),
+                                    response.getStatusCode(), response.getBody() != null ? new String(response.getBody()) : "NONE");
+                        }
+                    },
+                    (error) -> log.error("Error from callback for request id: {} | Error: {}", ExceptionUtils.getRootCauseMessage(error)));
+            log.info("Callback complete for request id: {} in {} ms", requestId, (System.currentTimeMillis() - start));
         } catch (MalformedURLException e) {
             log.error("Invalid callback URL: {} for request: {}", uri.toString(), requestId, e);
-        } catch (IOException e) {
-            log.error("Error making callback for: {} for request: {}", uri.toString(), requestId, e);
-        } catch (CertificateException e) {
-            log.error("Error making callback for: {} for request: {}", uri.toString(), requestId, e);
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Error making callback for: {} for request: {}", uri.toString(), requestId, e);
-        } catch (UnrecoverableKeyException e) {
-            log.error("Error making callback for: {} for request: {}", uri.toString(), requestId, e);
-        } catch (KeyStoreException e) {
-            log.error("Error making callback for: {} for request: {}", uri.toString(), requestId, e);
-        } catch (KeyManagementException e) {
-            log.error("Error making callback for: {} for request: {}", uri.toString(), requestId, e);
-        } catch (ExecutionException e) {
+        } catch (Exception e) {
             log.error("Error making callback for: {} for request: {}", uri.toString(), requestId, e);
         }
     }
