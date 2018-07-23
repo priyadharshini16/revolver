@@ -238,12 +238,15 @@ public class AeroSpikePersistenceProvider implements PersistenceProvider {
 
     @Override
     public RevolverCallbackRequest request(String requestId) {
+        long start = System.currentTimeMillis();
         final Key key = new Key(mailBoxConfig.getNamespace(), MAILBOX_SET_NAME, requestId);
         final Record record = AerospikeConnectionManager.getClient().get(AerospikeConnectionManager.readPolicy, key);
         if(record == null) {
             return null;
         }
-        return recordToRequest(record);
+        RevolverCallbackRequest request = recordToRequest(record);
+        log.info("Callback request fetch for request id: {} complete in {} ms", requestId, (System.currentTimeMillis() - start));
+        return request;
     }
 
     @Override

@@ -49,7 +49,7 @@
         <dropwizard.servicediscovery>1.1.4-SNAPSHOT</dropwizard.servicediscovery>
         <xml.bundle>1.2.2-1</xml.bundle>
         <msgpack.bundle>1.2.2-1</msgpack.bundle>
-        <hystrix.version>1.5.12</hystrix.version>
+        <hystrix.version>1.5.11</hystrix.version>
         <ranger.version>0.3.0-SNAPSHOT</ranger.version>
         <okhttp.version>3.10.0</okhttp.version>
         <aerospike.version>4.1.5</aerospike.version>
