@@ -91,7 +91,17 @@ public class RevolverCommandHelper {
         } else {
             metricsConfig = new MetricsConfig();
         }
-        final String keyName = Joiner.on(".").join(commandHandler.getServiceConfiguration().getService(), api);
+        if(serviceConfiguration.isSharedPool()) {
+            int poolSize = 0;
+            for(Object handler : commandHandler.getApiConfigurations().values()) {
+                poolSize += ((CommandHandlerConfig)handler).getRuntime().getThreadPool().getConcurrency();
+            }
+            threadPoolConfig.setConcurrency(poolSize);
+        }
+        final String keyName = serviceConfiguration.isSharedPool() ?
+                Joiner.on(".").join(commandHandler.getServiceConfiguration().getService(), "shared") :
+                Joiner.on(".").join(commandHandler.getServiceConfiguration().getService(), api);
+
         return HystrixCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory
                 .asKey(serviceConfiguration.getService()))
                 .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()

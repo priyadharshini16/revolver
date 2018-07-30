@@ -516,4 +516,21 @@ public class RevolverSimpleHttpCommandTest extends BaseRevolverTest {
         assertEquals(response.getStatusCode(), 404);
     }
 
+    @Test
+    public void testSharedPoolHttpCommand() throws TimeoutException {
+        stubFor(get(urlEqualTo("/v1/test"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")));
+        RevolverHttpCommand httpCommand = RevolverBundle.getHttpCommand("test");
+        httpCommand.getServiceConfiguration().setSharedPool(true);
+        val request = RevolverHttpRequest.builder()
+                .service("test")
+                .api("test")
+                .method(RevolverHttpApiConfig.RequestMethod.GET)
+                .path("v1/test")
+                .build();
+        val response = httpCommand.execute(request);
+        assertEquals(response.getStatusCode(), 200);
+    }
 }
