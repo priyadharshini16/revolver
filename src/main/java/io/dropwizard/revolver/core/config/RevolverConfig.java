@@ -79,9 +79,24 @@ public class RevolverConfig {
     @Max(30000)
     private int callbackTimeout = 3000;
 
+    @Getter
+    @Setter
+    private boolean dynamicConfig = false;
+
+    @Getter
+    @Setter
+    @Max(30000)
+    private int configPollIntervalSeconds = 600;
+
+    @Getter
+    @Setter
+    private String dynamicConfigUrl = null;
+
+
     @Builder
-    public RevolverConfig(ClientConfig clientConfig, RuntimeConfig global, ServiceResolverConfig serviceResolverConfig,
-                          String hystrixStreamPath, @Singular List<RevolverServiceConfig> services, MailBoxConfig mailBox) {
+    public RevolverConfig(ClientConfig clientConfig, RuntimeConfig global,
+                          ServiceResolverConfig serviceResolverConfig, String hystrixStreamPath,
+                          @Singular List<RevolverServiceConfig> services, MailBoxConfig mailBox) {
         this.clientConfig = clientConfig;
         this.global = global;
         this.serviceResolverConfig = serviceResolverConfig;
@@ -89,6 +104,7 @@ public class RevolverConfig {
         this.services = services;
         this.mailBox = mailBox;
         this.callbackTimeout = 3000;
+        this.dynamicConfig = false;
     }
 
 
@@ -98,5 +114,8 @@ public class RevolverConfig {
         this.hystrixStreamPath = "/hystrix.stream";
         this.services = Lists.newArrayList();
         this.callbackTimeout = 3000;
+        this.dynamicConfig = false;
+        this.configPollIntervalSeconds = 600;
+        this.dynamicConfigUrl = null;
     }
 }

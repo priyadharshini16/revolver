@@ -46,6 +46,8 @@ public class RevolverServiceConfig {
 
     private boolean sharedPool = false;
 
+    private String fallbackAddress;
+
     private HystrixCommandConfig runtime = new HystrixCommandConfig();
 
     public RevolverServiceConfig(final String type, final String service) {

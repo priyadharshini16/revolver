@@ -20,6 +20,7 @@ package io.dropwizard.revolver.resource;
 import com.codahale.metrics.annotation.Metered;
 import com.flipkart.ranger.healthcheck.HealthcheckStatus;
 import com.flipkart.ranger.model.ServiceNode;
+import com.google.common.collect.ImmutableMap;
 import io.dropwizard.revolver.RevolverBundle;
 import io.dropwizard.revolver.core.config.RevolverConfig;
 import io.dropwizard.revolver.core.config.RevolverServiceConfig;
@@ -109,6 +110,24 @@ public class RevolverMetadataResource {
     @Produces(MediaType.APPLICATION_JSON)
     public RevolverConfig config() {
         return config;
+    }
+
+    @Path("/v1/metadata/config/threads")
+    @GET
+    @Metered
+    @ApiOperation(value = "Get threads provisioned on gateway")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response threads() {
+        int totalThreads = config.getServices().stream().mapToInt( s -> s.getRuntime().getThreadPool().getConcurrency()).sum();
+        return Response.ok(
+                ImmutableMap.<String, Object>builder()
+                    .put("totalThreads", totalThreads)
+                    .put("services", config.getServices().stream().map( s ->
+                            ImmutableMap.<String, Object>builder()
+                            .put("service", s.getService())
+                            .put("shared", s.isSharedPool())
+                    )).build()
+        ).build();
     }
 
     private List<RevolverApiMetadata> apiMetadataList(RevolverHttpServiceConfig httpServiceConfig) {

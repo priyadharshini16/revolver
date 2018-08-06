@@ -76,6 +76,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -86,7 +87,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public abstract class RevolverBundle<T extends Configuration> implements ConfiguredBundle<T> {
 
-    private static Map<String, RevolverHttpCommand> httpCommands = new HashMap<>();
+    private static ConcurrentHashMap<String, RevolverHttpCommand> httpCommands = new ConcurrentHashMap<>();
 
     private static MultivaluedMap<String, ApiPathMap> serviceToPathMap = new MultivaluedHashMap<>();
 
@@ -235,6 +236,18 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
                     .objectMapper(environment.getObjectMapper())
                     .build();
         }
+        loadServiceConfiguration(revolverConfig);
+        System.out.println("***************************************************************************************************");
+        System.out.println("Revolver Service Map");
+        System.out.println("***************************************************************************************************");
+        serviceToPathMap.forEach( (k, v) -> {
+            System.out.println("\tService: " +k);
+            v.forEach( a -> a.getApi().getMethods().forEach(b -> System.out.println("\t\t[" +b.name() +"] " + a.getApi().getApi() +": " +a.getPath())));
+        });
+        System.out.println("***************************************************************************************************");
+    }
+
+    public static void loadServiceConfiguration(RevolverConfig revolverConfig) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, KeyManagementException, UnrecoverableKeyException {
         for (final RevolverServiceConfig config : revolverConfig.getServices()) {
             final String type = config.getType();
             switch (type) {
@@ -249,14 +262,6 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
             }
         }
-        System.out.println("***************************************************************************************************");
-        System.out.println("Revolver Service Map");
-        System.out.println("***************************************************************************************************");
-        serviceToPathMap.forEach( (k, v) -> {
-            System.out.println("\tService: " +k);
-            v.forEach( a -> a.getApi().getMethods().forEach(b -> System.out.println("\t\t[" +b.name() +"] " + a.getApi().getApi() +": " +a.getPath())));
-        });
-        System.out.println("***************************************************************************************************");
     }
 
     private static void registerHttpsCommand(RevolverConfig revolverConfig, RevolverServiceConfig config) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, KeyManagementException, UnrecoverableKeyException {
@@ -277,14 +282,15 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
                 .type(httpsConfig.getType())
                 .build();
         try {
-            httpCommands.put(config.getService(), RevolverHttpCommand.builder()
+            RevolverHttpCommand command = RevolverHttpCommand.builder()
                     .clientConfiguration(revolverConfig.getClientConfig())
                     .runtimeConfig(revolverConfig.getGlobal())
                     .serviceConfiguration(revolverHttpServiceConfig).apiConfigurations(generateApiConfigMap(revolverHttpServiceConfig))
                     .serviceResolver(serviceNameResolver)
                     .traceCollector(trace -> {
                         //TODO: Put in a publisher if required
-                    }).build());
+                    }).build();
+            httpCommands.put(config.getService(), command);
         } catch (ExecutionException e) {
             log.error("Error creating http command: {}", config.getService(), e);
         }
@@ -292,16 +298,17 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     private static void registerHttpCommand(RevolverConfig revolverConfig, RevolverServiceConfig config) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, KeyManagementException, UnrecoverableKeyException {
         final RevolverHttpServiceConfig httpConfig = (RevolverHttpServiceConfig) config;
+        httpConfig.setSecured(false);
         try {
-            httpConfig.setSecured(false);
-            httpCommands.put(config.getService(), RevolverHttpCommand.builder()
+            RevolverHttpCommand command = RevolverHttpCommand.builder()
                     .clientConfiguration(revolverConfig.getClientConfig())
                     .runtimeConfig(revolverConfig.getGlobal())
                     .serviceConfiguration(httpConfig).apiConfigurations(generateApiConfigMap(httpConfig))
                     .serviceResolver(serviceNameResolver)
                     .traceCollector(trace -> {
                         //TODO: Put in a publisher if required
-                    }).build());
+                    }).build();
+            httpCommands.put(config.getService(), command);
         } catch (ExecutionException e) {
             log.error("Error creating http command: {}", config.getService(), e);
         }
