@@ -71,7 +71,7 @@ public class BaseRevolverTest {
     protected static final InMemoryPersistenceProvider inMemoryPersistenceProvider = new InMemoryPersistenceProvider();
 
 
-    protected final RevolverBundle<Configuration> bundle = new RevolverBundle<Configuration>() {
+    protected final RevolverBundle<Configuration> bundle = new RevolverBundle<Configuration>(Configuration.class) {
 
         @Override
         public RevolverConfig getRevolverConfig(final Configuration configuration) {
