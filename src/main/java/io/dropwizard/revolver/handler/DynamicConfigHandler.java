@@ -19,12 +19,22 @@ package io.dropwizard.revolver.handler;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.revolver.RevolverBundle;
+import io.dropwizard.revolver.core.config.AerospikeMailBoxConfig;
+import io.dropwizard.revolver.core.config.InMemoryMailBoxConfig;
 import io.dropwizard.revolver.core.config.RevolverConfig;
+import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
+import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
+import io.dropwizard.revolver.http.auth.BasicAuthConfig;
+import io.dropwizard.revolver.http.auth.TokenAuthConfig;
+import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
+import io.dropwizard.revolver.http.config.RevolverHttpsServiceConfig;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.URL;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +59,14 @@ public abstract class DynamicConfigHandler<T> implements Managed {
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+        objectMapper.registerSubtypes(new NamedType(RevolverHttpServiceConfig.class, "http"));
+        objectMapper.registerSubtypes(new NamedType(RevolverHttpsServiceConfig.class, "https"));
+        objectMapper.registerSubtypes(new NamedType(BasicAuthConfig.class, "basic"));
+        objectMapper.registerSubtypes(new NamedType(TokenAuthConfig.class, "token"));
+        objectMapper.registerSubtypes(new NamedType(SimpleEndpointSpec.class, "simple"));
+        objectMapper.registerSubtypes(new NamedType(RangerEndpointSpec.class, "ranger_sharded"));
+        objectMapper.registerSubtypes(new NamedType(InMemoryMailBoxConfig.class, "in_memory"));
+        objectMapper.registerSubtypes(new NamedType(AerospikeMailBoxConfig.class, "aerospike"));
     }
 
 
@@ -60,7 +78,7 @@ public abstract class DynamicConfigHandler<T> implements Managed {
     private void refreshConfig() {
         try {
             log.info("Fetching configuration from dynamic url: {}", revolverConfig.getDynamicConfigUrl());
-            T response = objectMapper.readValue(revolverConfig.getDynamicConfigUrl(), configClass);
+            T response = objectMapper.readValue(new URL(revolverConfig.getDynamicConfigUrl()), configClass);
             RevolverBundle.loadServiceConfiguration(getRevolverConfig(response));
         } catch (Exception e) {
             log.error("Error fetching configuration: {}", e);
