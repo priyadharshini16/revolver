@@ -45,6 +45,7 @@ import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
 import io.dropwizard.revolver.exception.RevolverExceptionMapper;
 import io.dropwizard.revolver.exception.TimeoutExceptionMapper;
 import io.dropwizard.revolver.filters.RevolverRequestFilter;
+import io.dropwizard.revolver.handler.DynamicConfigHandler;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.auth.BasicAuthConfig;
 import io.dropwizard.revolver.http.auth.TokenAuthConfig;
@@ -97,6 +98,12 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
     private static RevolverServiceResolver serviceNameResolver = null;
 
+    private Class<T> configClass;
+
+    public RevolverBundle(Class<T> configClass) {
+        this.configClass = configClass;
+    }
+
     @Override
     public void initialize(final Bootstrap<?> bootstrap) {
         //Reset everything before configuration
@@ -134,6 +141,17 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
         environment.jersey().register(new RevolverMailboxResource(persistenceProvider, environment.getObjectMapper(),
                 xmlObjectMapper, msgPackObjectMapper));
         environment.jersey().register(new RevolverMetadataResource(revolverConfig));
+
+        //Register dynamic config poller if it is enabled
+        if(revolverConfig.isDynamicConfig()) {
+            environment.lifecycle().manage(new DynamicConfigHandler<T>(configClass, revolverConfig) {
+
+                @Override
+                protected RevolverConfig getRevolverConfig(T configuration) {
+                    return revolverConfig;
+                }
+            });
+        }
     }
 
 
