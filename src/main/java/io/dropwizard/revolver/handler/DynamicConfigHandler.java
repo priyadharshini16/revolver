@@ -18,21 +18,16 @@
 package io.dropwizard.revolver.handler;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.hash.Hashing;
+import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.revolver.RevolverBundle;
-import io.dropwizard.revolver.core.config.AerospikeMailBoxConfig;
-import io.dropwizard.revolver.core.config.InMemoryMailBoxConfig;
 import io.dropwizard.revolver.core.config.RevolverConfig;
-import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
-import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
-import io.dropwizard.revolver.http.auth.BasicAuthConfig;
-import io.dropwizard.revolver.http.auth.TokenAuthConfig;
-import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
-import io.dropwizard.revolver.http.config.RevolverHttpsServiceConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.Charsets;
 
 import java.net.URL;
 import java.util.concurrent.Executors;
@@ -40,49 +35,67 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public abstract class DynamicConfigHandler<T> implements Managed {
+public class DynamicConfigHandler implements Managed {
 
     private RevolverConfig revolverConfig;
 
-    private Class<T> configClass;
-
     private ScheduledExecutorService scheduledExecutorService;
 
-    private static final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
+    private ObjectMapper objectMapper;
 
-    protected abstract RevolverConfig getRevolverConfig(final T configuration);
+    private String configAttribute;
 
-    public DynamicConfigHandler(Class<T> configClass,
-                                RevolverConfig revolverConfig) {
-        this.configClass = configClass;
+    private String prevConfigHash;
+
+    public DynamicConfigHandler(final String configAttribute,
+                                RevolverConfig revolverConfig, ObjectMapper objectMapper) {
+        this.configAttribute = configAttribute;
         this.revolverConfig = revolverConfig;
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
-        objectMapper.registerSubtypes(new NamedType(RevolverHttpServiceConfig.class, "http"));
-        objectMapper.registerSubtypes(new NamedType(RevolverHttpsServiceConfig.class, "https"));
-        objectMapper.registerSubtypes(new NamedType(BasicAuthConfig.class, "basic"));
-        objectMapper.registerSubtypes(new NamedType(TokenAuthConfig.class, "token"));
-        objectMapper.registerSubtypes(new NamedType(SimpleEndpointSpec.class, "simple"));
-        objectMapper.registerSubtypes(new NamedType(RangerEndpointSpec.class, "ranger_sharded"));
-        objectMapper.registerSubtypes(new NamedType(InMemoryMailBoxConfig.class, "in_memory"));
-        objectMapper.registerSubtypes(new NamedType(AerospikeMailBoxConfig.class, "aerospike"));
+        this.objectMapper = objectMapper.copy();
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
 
     @Override
     public void start() {
+        try {
+            prevConfigHash = computeHash(loadConfigData());
+            log.info("Initializing dynamic config handler... Config Hash: {}", prevConfigHash);
+        } catch (Exception e) {
+            log.error("Error fetching configuration", e);
+        }
         scheduledExecutorService.scheduleWithFixedDelay(this::refreshConfig, 120, revolverConfig.getConfigPollIntervalSeconds(), TimeUnit.SECONDS);
     }
 
     private void refreshConfig() {
         try {
-            log.info("Fetching configuration from dynamic url: {}", revolverConfig.getDynamicConfigUrl());
-            T response = objectMapper.readValue(new URL(revolverConfig.getDynamicConfigUrl()), configClass);
-            RevolverBundle.loadServiceConfiguration(getRevolverConfig(response));
+            final String substituted = loadConfigData();
+            String curHash = computeHash(substituted);
+            log.info("Old Config Hash: {} | New Config Hash: {}", prevConfigHash, curHash);
+            if (!prevConfigHash.equals(curHash)) {
+                log.info("Refreshing config with new hash: {}", curHash);
+                RevolverConfig revolverConfig = objectMapper.readValue(substituted, RevolverConfig.class);
+                RevolverBundle.loadServiceConfiguration(revolverConfig);
+                this.prevConfigHash = curHash;
+            } else {
+                log.info("No config changes detected. Not reloading config..");
+            }
         } catch (Exception e) {
-            log.error("Error fetching configuration: {}", e);
+            log.error("Error fetching configuration", e);
         }
+    }
+
+    private String loadConfigData() throws Exception {
+        log.info("Fetching configuration from dynamic url: {}", revolverConfig.getDynamicConfigUrl());
+        JsonNode node = objectMapper.readTree(new YAMLFactory().createParser(new URL(revolverConfig.getDynamicConfigUrl())));
+        EnvironmentVariableSubstitutor substitute = new EnvironmentVariableSubstitutor(false, true);
+        return substitute.replace(node.get(configAttribute).toString());
+    }
+
+    private String computeHash(final String config) {
+        return Hashing.sha256().hashString(config, Charsets.UTF_8).toString();
     }
 
     @Override

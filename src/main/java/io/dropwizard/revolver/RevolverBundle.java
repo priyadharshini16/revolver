@@ -144,13 +144,7 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
 
         //Register dynamic config poller if it is enabled
         if(revolverConfig.isDynamicConfig()) {
-            environment.lifecycle().manage(new DynamicConfigHandler<T>(configClass, revolverConfig) {
-
-                @Override
-                protected RevolverConfig getRevolverConfig(T configuration) {
-                    return revolverConfig;
-                }
-            });
+            environment.lifecycle().manage(new DynamicConfigHandler(getRevolverConfigAttribute(), revolverConfig, environment.getObjectMapper()));
         }
     }
 
@@ -219,6 +213,8 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     }
 
     public abstract RevolverConfig getRevolverConfig(final T configuration);
+
+    public abstract String getRevolverConfigAttribute();
 
     PersistenceProvider getPersistenceProvider(final T configuration, final Environment environment) {
         final RevolverConfig revolverConfig = getRevolverConfig(configuration);

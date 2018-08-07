@@ -78,6 +78,8 @@ public class BaseRevolverTest {
             return revolverConfig;
         }
 
+        public String getRevolverConfigAttribute() { return "revolver"; }
+
         @Override
         public CuratorFramework getCurator() {
             return null;
