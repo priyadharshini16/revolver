@@ -56,10 +56,7 @@ import io.dropwizard.revolver.http.model.ApiPathMap;
 import io.dropwizard.revolver.persistence.AeroSpikePersistenceProvider;
 import io.dropwizard.revolver.persistence.InMemoryPersistenceProvider;
 import io.dropwizard.revolver.persistence.PersistenceProvider;
-import io.dropwizard.revolver.resource.RevolverCallbackResource;
-import io.dropwizard.revolver.resource.RevolverMailboxResource;
-import io.dropwizard.revolver.resource.RevolverMetadataResource;
-import io.dropwizard.revolver.resource.RevolverRequestResource;
+import io.dropwizard.revolver.resource.*;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.xml.XmlBundle;
@@ -76,7 +73,10 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -97,12 +97,6 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     public static final XmlMapper xmlObjectMapper = new XmlMapper();
 
     private static RevolverServiceResolver serviceNameResolver = null;
-
-    private Class<T> configClass;
-
-    public RevolverBundle(Class<T> configClass) {
-        this.configClass = configClass;
-    }
 
     @Override
     public void initialize(final Bootstrap<?> bootstrap) {
@@ -142,10 +136,12 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
                 xmlObjectMapper, msgPackObjectMapper));
         environment.jersey().register(new RevolverMetadataResource(revolverConfig));
 
+        DynamicConfigHandler dynamicConfigHandler = new DynamicConfigHandler(getRevolverConfigAttribute(), revolverConfig, environment.getObjectMapper());
         //Register dynamic config poller if it is enabled
         if(revolverConfig.isDynamicConfig()) {
-            environment.lifecycle().manage(new DynamicConfigHandler(getRevolverConfigAttribute(), revolverConfig, environment.getObjectMapper()));
+            environment.lifecycle().manage(dynamicConfigHandler);
         }
+        environment.jersey().register(new RevolverConfigResource(dynamicConfigHandler));
     }
 
 
