@@ -59,8 +59,9 @@ public class RevolverHttpApiConfig extends CommandHandlerConfig {
     private RevolverHttpAuthorizationConfig authorization = new RevolverHttpAuthorizationConfig();
 
     @Builder(builderMethodName = "configBuilder")
-    public RevolverHttpApiConfig(final String api, final HystrixCommandConfig runtime, final String path, @Singular final Set<RequestMethod> methods, final Set<Integer> acceptableResponseCodes) {
-        super(api, runtime);
+    public RevolverHttpApiConfig(final String api, final HystrixCommandConfig runtime, final String path,
+                                 @Singular final Set<RequestMethod> methods, final Set<Integer> acceptableResponseCodes, final boolean sharedPool) {
+        super(api, sharedPool, runtime);
         this.path = path;
         this.methods = methods;
         this.acceptableResponseCodes = acceptableResponseCodes;

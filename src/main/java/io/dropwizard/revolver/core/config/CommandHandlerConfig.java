@@ -28,13 +28,14 @@ import javax.validation.constraints.NotNull;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 @ToString
 public class CommandHandlerConfig {
 
     @NotNull
     @NotEmpty
     private String api;
+
+    private boolean sharedPool = false;
 
     private HystrixCommandConfig runtime = new HystrixCommandConfig();
 }

@@ -91,14 +91,10 @@ public class RevolverCommandHelper {
         } else {
             metricsConfig = new MetricsConfig();
         }
-        if(serviceConfiguration.isSharedPool()) {
-            int poolSize = 0;
-            for(Object handler : commandHandler.getApiConfigurations().values()) {
-                poolSize += ((CommandHandlerConfig)handler).getRuntime().getThreadPool().getConcurrency();
-            }
-            threadPoolConfig.setConcurrency(poolSize);
+        if(serviceConfiguration.isSharedPool() || config.isSharedPool()) {
+            threadPoolConfig = serviceConfiguration.getRuntime().getThreadPool();
         }
-        final String keyName = serviceConfiguration.isSharedPool() ?
+        final String keyName = serviceConfiguration.isSharedPool() || config.isSharedPool() ?
                 Joiner.on(".").join(commandHandler.getServiceConfiguration().getService(), "shared") :
                 Joiner.on(".").join(commandHandler.getServiceConfiguration().getService(), api);
 
