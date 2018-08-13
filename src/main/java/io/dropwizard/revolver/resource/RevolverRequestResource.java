@@ -75,6 +75,8 @@ public class RevolverRequestResource {
 
     private static final Map<String, String> BAD_REQUEST_RESPONSE = Collections.singletonMap("message", "Bad Request");
 
+    private static Map<String, String> SERVICE_UNAVAILABLE_RESPONSE = Collections.singletonMap("message", "Service Unavailable");
+
     private static final Map<String, String> DUPLICATE_REQUEST_RESPONSE = Collections.singletonMap("message", "Duplicate");
 
     public RevolverRequestResource(final ObjectMapper jsonObjectMapper,
@@ -158,6 +160,14 @@ public class RevolverRequestResource {
         if(apiMap == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity(
                     ResponseTransformationUtil.transform(BAD_REQUEST_RESPONSE,
+                            headers.getMediaType() != null ? headers.getMediaType().toString() : MediaType.APPLICATION_JSON,
+                            jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper)
+            ).build();
+        }
+        String serviceKey = service +"." +apiMap.getApi().getApi();
+        if(RevolverBundle.apiStatus.containsKey(serviceKey) && !RevolverBundle.apiStatus.get(serviceKey)) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(
+                    ResponseTransformationUtil.transform(SERVICE_UNAVAILABLE_RESPONSE,
                             headers.getMediaType() != null ? headers.getMediaType().toString() : MediaType.APPLICATION_JSON,
                             jsonObjectMapper, xmlObjectMapper, msgPackObjectMapper)
             ).build();
