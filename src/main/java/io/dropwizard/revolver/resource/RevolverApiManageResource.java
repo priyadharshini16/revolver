@@ -122,7 +122,7 @@ public class RevolverApiManageResource {
     }
 
     @Path("/v1/manage/api/status")
-    @POST
+    @GET
     @Metered
     @ApiOperation(value = "Full API Status")
     @Produces(MediaType.APPLICATION_JSON)
