@@ -523,7 +523,7 @@ public class RevolverSimpleHttpCommandTest extends BaseRevolverTest {
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")));
         RevolverHttpCommand httpCommand = RevolverBundle.getHttpCommand("test");
-        httpCommand.getServiceConfiguration().setSharedPool(true);
+        httpCommand.getServiceConfiguration().getApis().forEach( a -> a.setSharedPool(true));
         val request = RevolverHttpRequest.builder()
                 .service("test")
                 .api("test")

@@ -22,6 +22,7 @@ import com.flipkart.ranger.healthcheck.HealthcheckStatus;
 import com.flipkart.ranger.model.ServiceNode;
 import com.google.common.collect.ImmutableMap;
 import io.dropwizard.revolver.RevolverBundle;
+import io.dropwizard.revolver.core.config.CommandHandlerConfig;
 import io.dropwizard.revolver.core.config.RevolverConfig;
 import io.dropwizard.revolver.core.config.RevolverServiceConfig;
 import io.dropwizard.revolver.core.model.RevolverApiMetadata;
@@ -29,6 +30,7 @@ import io.dropwizard.revolver.core.model.RevolverMetadataResponse;
 import io.dropwizard.revolver.core.model.RevolverServiceMetadata;
 import io.dropwizard.revolver.discovery.RevolverServiceResolver;
 import io.dropwizard.revolver.discovery.model.RangerEndpointSpec;
+import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import io.swagger.annotations.ApiOperation;
 import lombok.Builder;
@@ -41,6 +43,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -118,15 +121,23 @@ public class RevolverMetadataResource {
     @ApiOperation(value = "Get threads provisioned on gateway")
     @Produces(MediaType.APPLICATION_JSON)
     public Response threads() {
-        int totalThreads = config.getServices().stream().mapToInt( s -> s.getRuntime().getThreadPool().getConcurrency()).sum();
+        int apiThreads = 0;
+        int sharedThreads = 0;
+        for(RevolverServiceConfig s : config.getServices()) {
+            if (s instanceof RevolverHttpServiceConfig) {
+                if(((RevolverHttpServiceConfig) s).getApis().stream().noneMatch(CommandHandlerConfig::isSharedPool)) {
+                    sharedThreads +=  s.getRuntime().getThreadPool().getConcurrency();
+                } else {
+                    Set<RevolverHttpApiConfig> apis = ((RevolverHttpServiceConfig)s).getApis();
+                    apiThreads += apis.stream().filter( a-> !a.isSharedPool()).mapToInt( a -> a.getRuntime().getThreadPool().getConcurrency()).sum();
+                }
+            }
+        }
         return Response.ok(
                 ImmutableMap.<String, Object>builder()
-                    .put("totalThreads", totalThreads)
-                    .put("services", config.getServices().stream().map( s ->
-                            ImmutableMap.<String, Object>builder()
-                            .put("service", s.getService())
-                            .put("shared", s.isSharedPool())
-                    )).build()
+                    .put("apiThreads", apiThreads)
+                    .put("sharedThreads", sharedThreads)
+                    .build()
         ).build();
     }
 
