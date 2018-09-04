@@ -30,7 +30,6 @@ import io.dropwizard.revolver.core.config.RevolverConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.Charsets;
 
-import java.net.URL;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -41,6 +40,8 @@ import java.util.concurrent.TimeUnit;
 public class DynamicConfigHandler implements Managed {
 
     private RevolverConfig revolverConfig;
+
+    private ConfigSource configSource;
 
     private ScheduledExecutorService scheduledExecutorService;
 
@@ -53,15 +54,20 @@ public class DynamicConfigHandler implements Managed {
     private long prevLoadTime;
 
     public DynamicConfigHandler(final String configAttribute,
-                                RevolverConfig revolverConfig, ObjectMapper objectMapper) {
+                                RevolverConfig revolverConfig, ObjectMapper objectMapper, ConfigSource configSource) {
         this.configAttribute = configAttribute;
         this.revolverConfig = revolverConfig;
+        this.configSource = configSource;
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         this.objectMapper = objectMapper.copy();
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         try {
-            prevConfigHash = computeHash(loadConfigData());
+            if(configSource == null) {
+                prevConfigHash = "unknown";
+            } else {
+                prevConfigHash = computeHash(loadConfigData());
+            }
             log.info("Initializing dynamic config handler... Config Hash: {}", prevConfigHash);
         } catch (Exception e) {
             log.error("Error fetching configuration", e);
@@ -75,6 +81,9 @@ public class DynamicConfigHandler implements Managed {
     }
 
     public String refreshConfig() {
+        if(configSource == null) {
+            return "unknown";
+        }
         try {
             final String substituted = loadConfigData();
             String curHash = computeHash(substituted);
@@ -105,7 +114,7 @@ public class DynamicConfigHandler implements Managed {
 
     private String loadConfigData() throws Exception {
         log.info("Fetching configuration from dynamic url: {}", revolverConfig.getDynamicConfigUrl());
-        JsonNode node = objectMapper.readTree(new YAMLFactory().createParser(new URL(revolverConfig.getDynamicConfigUrl())));
+        JsonNode node = objectMapper.readTree(new YAMLFactory().createParser(configSource.loadConfigData()));
         EnvironmentVariableSubstitutor substitute = new EnvironmentVariableSubstitutor(false, true);
         return substitute.replace(node.get(configAttribute).toString());
     }

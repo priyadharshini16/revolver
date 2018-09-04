@@ -45,6 +45,7 @@ import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
 import io.dropwizard.revolver.exception.RevolverExceptionMapper;
 import io.dropwizard.revolver.exception.TimeoutExceptionMapper;
 import io.dropwizard.revolver.filters.RevolverRequestFilter;
+import io.dropwizard.revolver.handler.ConfigSource;
 import io.dropwizard.revolver.handler.DynamicConfigHandler;
 import io.dropwizard.revolver.http.RevolverHttpCommand;
 import io.dropwizard.revolver.http.auth.BasicAuthConfig;
@@ -138,7 +139,8 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
                 xmlObjectMapper, msgPackObjectMapper));
         environment.jersey().register(new RevolverMetadataResource(revolverConfig));
 
-        DynamicConfigHandler dynamicConfigHandler = new DynamicConfigHandler(getRevolverConfigAttribute(), revolverConfig, environment.getObjectMapper());
+        DynamicConfigHandler dynamicConfigHandler = new
+                DynamicConfigHandler(getRevolverConfigAttribute(), revolverConfig, environment.getObjectMapper(), getConfigSource());
         //Register dynamic config poller if it is enabled
         if(revolverConfig.isDynamicConfig()) {
             environment.lifecycle().manage(dynamicConfigHandler);
@@ -214,6 +216,8 @@ public abstract class RevolverBundle<T extends Configuration> implements Configu
     public abstract RevolverConfig getRevolverConfig(final T configuration);
 
     public abstract String getRevolverConfigAttribute();
+
+    public abstract ConfigSource getConfigSource();
 
     PersistenceProvider getPersistenceProvider(final T configuration, final Environment environment) {
         final RevolverConfig revolverConfig = getRevolverConfig(configuration);

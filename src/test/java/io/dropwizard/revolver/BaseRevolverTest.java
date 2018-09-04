@@ -30,6 +30,7 @@ import io.dropwizard.revolver.core.config.*;
 import io.dropwizard.revolver.core.config.hystrix.ThreadPoolConfig;
 import io.dropwizard.revolver.discovery.ServiceResolverConfig;
 import io.dropwizard.revolver.discovery.model.SimpleEndpointSpec;
+import io.dropwizard.revolver.handler.ConfigSource;
 import io.dropwizard.revolver.http.config.RevolverHttpApiConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpServiceConfig;
 import io.dropwizard.revolver.http.config.RevolverHttpsServiceConfig;
@@ -82,6 +83,11 @@ public class BaseRevolverTest {
 
         @Override
         public CuratorFramework getCurator() {
+            return null;
+        }
+
+        @Override
+        public ConfigSource getConfigSource() {
             return null;
         }
     };
